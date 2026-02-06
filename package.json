@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-telegram-censor",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Telegram Censor for n8n: local nudity detection and blur to prevent Telegram channel/group bans from adult content",
   "keywords": [
     "n8n-community-node-package",
@@ -60,7 +60,7 @@
   "dependencies": {
     "n8n-workflow": "^2.7.0",
     "onnxruntime-web": "^1.17.0",
-    "sharp": "^0.32.6",
+    "sharp": "^0.33.5",
     "telegram": "^2.19.0"
   },
   "devDependencies": {

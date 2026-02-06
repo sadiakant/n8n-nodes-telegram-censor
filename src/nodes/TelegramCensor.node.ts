@@ -1,9 +1,11 @@
 import { IExecuteFunctions, INodeExecutionData, INodeType, INodeTypeDescription } from 'n8n-workflow';
 import { TelegramClient } from 'telegram';
-import { LogLevel } from 'telegram/extensions/Logger';
+import { LogLevel, Logger } from 'telegram/extensions/Logger';
 import { StringSession } from 'telegram/sessions';
 import { CustomFile } from 'telegram/client/uploads';
 import { detectNudity, blurNudity, releaseModel } from '../inference'; 
+
+Logger.setLevel(LogLevel.ERROR);
 
 export class TelegramCensor implements INodeType {
   description: INodeTypeDescription = {
@@ -25,9 +27,9 @@ export class TelegramCensor implements INodeType {
         options: [
           { name: 'Get Messages', value: 'getMessages', description: 'Get recent messages with optional time/date filter' },
           { name: 'Download Media', value: 'downloadMedia', description: 'Download photo/document from message' },
-          { name: 'NudeNet Scanner', value: 'nudeNetScanner', description: 'Detect exposed nudity using NudeNet (100% local)' },
-          { name: 'NudeNet Blur', value: 'nudeNetBlur', description: 'Blur only exposed private parts (NudeNet)' },
-          { name: 'Edit Message', value: 'editMessage', description: 'Replace media in message (keep original text)' },
+          { name: 'Scanner', value: 'nudeNetScanner', description: 'Detect exposed nudity using NudeNet (100% local)' },
+          { name: 'Blur', value: 'nudeNetBlur', description: 'Blur only exposed private parts (NudeNet)' },
+          { name: 'Replace Image', value: 'editMessage', description: 'Replace media in message (keep original text)' },
         ],
         default: 'getMessages',
         description: 'The operation to perform',
@@ -69,6 +71,14 @@ export class TelegramCensor implements INodeType {
         type: 'number',
         default: 24,
         displayOptions: { show: { operation: ['getMessages'], mode: ['hours'] } },
+      },
+      {
+        displayName: 'Max Messages',
+        name: 'maxMessages',
+        type: 'number',
+        default: 500,
+        displayOptions: { show: { operation: ['getMessages'], mode: ['hours', 'range'] } },
+        description: 'Safety cap for very active chats',
       },
       {
         displayName: 'From Date',
@@ -210,6 +220,11 @@ export class TelegramCensor implements INodeType {
           case 'getMessages': {
             const chatId = this.getNodeParameter('chatId', i, '') as string;
             const mode = this.getNodeParameter('mode', i, 'limit') as string;
+            const maxMessages = this.getNodeParameter('maxMessages', i, 500) as number;
+            const iterOptions: Record<string, any> = {};
+            if (maxMessages > 0) {
+              iterOptions.limit = maxMessages;
+            }
             
             // Get Filter Parameters
             const onlyMedia = this.getNodeParameter('onlyMedia', i, false) as boolean;
@@ -229,7 +244,7 @@ export class TelegramCensor implements INodeType {
               
               // Iterate Newest -> Oldest. Stop when we hit a message older than cutoff.
               // Note: We use iterMessages without an offsetDate to start from "Now".
-              for await (const msg of client.iterMessages(chatId, {})) {
+              for await (const msg of client.iterMessages(chatId, iterOptions)) {
                 if (msg.date < cutoffTime) {
                     break; // Message is too old, stop fetching
                 }
@@ -245,7 +260,7 @@ export class TelegramCensor implements INodeType {
               const toTime = toDateStr ? Math.floor(new Date(toDateStr).getTime() / 1000) : Math.floor(Date.now() / 1000);
 
               // Iterate Newest -> Oldest
-              for await (const msg of client.iterMessages(chatId, {})) {
+              for await (const msg of client.iterMessages(chatId, iterOptions)) {
                 if (msg.date > toTime) {
                     continue; // Skip messages newer than 'To Date' (if any, though usually we start at Now)
                 }
@@ -352,10 +367,8 @@ export class TelegramCensor implements INodeType {
             const buffer = await this.helpers.getBinaryDataBuffer(i, 'media');
             
             // This is where the optimization happens (inside inference.ts)
-            const detections = await detectNudity(buffer);
-
-            const filtered = detections.filter(d => d.score >= minConfidence);
-            const isNsfw = filtered.length > 0;
+            const detections = await detectNudity(buffer, minConfidence);
+            const isNsfw = detections.length > 0;
 
             const binaryProperty = await this.helpers.prepareBinaryData(buffer);
             binaryProperty.fileName = `original_${item.json.messageId}.jpg`;
@@ -364,9 +377,9 @@ export class TelegramCensor implements INodeType {
               json: {
                 ...item.json,
                 isNsfw,
-                nsfwParts: filtered.map(d => d.class),
-                detections: filtered,
-                detectionCount: filtered.length,
+                nsfwParts: detections.map(d => d.class),
+                detections,
+                detectionCount: detections.length,
               },
               binary: { media: binaryProperty },
             });
@@ -381,10 +394,11 @@ export class TelegramCensor implements INodeType {
 
             const buffer = await this.helpers.getBinaryDataBuffer(i, 'media');
             const detections = (item.json.detections || []) as any[];
+            const blurStrength = this.getNodeParameter('blurStrength', i, 35) as number;
 
             let resultBuffer = buffer;
             if (detections.length > 0) {
-              resultBuffer = await blurNudity(buffer, detections);
+              resultBuffer = await blurNudity(buffer, detections, blurStrength);
             }
 
             const binaryData = await this.helpers.prepareBinaryData(resultBuffer);

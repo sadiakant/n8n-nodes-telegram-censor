@@ -1,33 +1,63 @@
 {
   "name": "n8n-nodes-telegram-censor",
   "version": "1.0.0",
-  "description": "Telegram Auto-Censor: Detects & blurs nudity using NudeNet (100% local, free forever)",
+  "description": "Telegram Censor for n8n: local nudity detection and blur to prevent Telegram channel/group bans from adult content",
   "keywords": [
     "n8n-community-node-package",
     "telegram",
+    "telegram-mtproto",
+    "telegram-censor",
+    "telegram-nudity-filter",
+    "telegram-nsfw",
+    "telegram-policy",
+    "adult-content",
+    "pornographic-content",
     "nudity",
     "censor",
     "moderation",
     "nudeness",
-    "local-ai"
+    "local-ai",
+    "nsfw",
+    "nudenet",
+    "onnx",
+    "image-blur",
+    "content-moderation",
+    "privacy",
+    "self-hosted"
   ],
   "license": "MIT",
-  "author": "sadiakant",
+  "author": {
+    "name": "sadiakant",
+    "email": "krushnakantsadiya@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sadiakant/n8n-nodes-telegram-censor.git"
+  },
+  "homepage": "https://github.com/sadiakant/n8n-nodes-telegram-censor#readme",
+  "bugs": {
+    "url": "https://github.com/sadiakant/n8n-nodes-telegram-censor/issues"
+  },
   "n8n": {
     "n8nNodesApiVersion": 1,
     "credentials": [
-      "dist/TelegramCensorCredentials.credentials.js"
+      "dist/credentials/TelegramCensorCredentials.credentials.js"
     ],
     "nodes": [
-      "dist/TelegramCensor.node.js"
+      "dist/nodes/TelegramCensor.node.js"
     ]
   },
   "files": [
-    "dist",
-    "models" 
+    "dist"
   ],
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
   "dependencies": {
-    "axios": "^1.6.0",
     "n8n-workflow": "^2.7.0",
     "onnxruntime-node": "^1.16.0",
     "sharp": "^0.32.6",
@@ -35,11 +65,13 @@
   },
   "devDependencies": {
     "@types/node": "^25.2.0",
-    "copyfiles": "^2.4.1",
     "rimraf": "^5.0.5",
     "typescript": "^5.9.3"
   },
   "scripts": {
-    "build": "npx rimraf dist && tsc && npx copyfiles -u 1 src/models/*.onnx dist/ && node copy-assets.mjs"
+    "build": "npx rimraf dist && tsc && node copy-assets.mjs",
+    "dev": "tsc --watch",
+    "test": "echo \"No tests defined\"",
+    "prepublishOnly": "npm run build"
   }
 }

@@ -26,6 +26,18 @@ const UNSAFE_CLASSES = [
   'FEMALE_BREAST_EXPOSED', "MALE_BREAST_EXPOSED", 'ANUS_EXPOSED'
 ];
 
+const DEFAULT_MIN_CONFIDENCE = 0.4;
+const CHW_SIZE = INPUT_SIZE * INPUT_SIZE * 3;
+const chwPool: Float32Array[] = [];
+
+function acquireChwBuffer() {
+  return chwPool.pop() ?? new Float32Array(CHW_SIZE);
+}
+
+function releaseChwBuffer(buf: Float32Array) {
+  chwPool.push(buf);
+}
+
 export interface NudeDetection {
   class: string;
   score: number;
@@ -83,7 +95,7 @@ export async function releaseModel() {
   }
 }
 
-export async function detectNudity(buffer: Buffer): Promise<NudeDetection[]> {
+export async function detectNudity(buffer: Buffer, minConfidence = DEFAULT_MIN_CONFIDENCE): Promise<NudeDetection[]> {
   // Scope the session usage tightly
   const inferenceSession = await loadModel();
   
@@ -106,7 +118,7 @@ export async function detectNudity(buffer: Buffer): Promise<NudeDetection[]> {
   // We now write directly from uint8 buffer to the CHW tensor buffer.
   // This saves 1x memory allocation of size (320*320*3*4 bytes).
   
-  const chwData = new Float32Array(INPUT_SIZE * INPUT_SIZE * 3);
+  const chwData = acquireChwBuffer();
   const pixelCount = INPUT_SIZE * INPUT_SIZE;
   
   for (let i = 0; i < pixelCount; i++) {
@@ -128,6 +140,7 @@ export async function detectNudity(buffer: Buffer): Promise<NudeDetection[]> {
   
   const results = await inferenceSession.run(feeds);
   const output = results[inferenceSession.outputNames[0]];
+  releaseChwBuffer(chwData);
 
   // 5. Cleanup Tensor immediately
   // (Let JS GC handle 'tensor' and 'chwData' as they go out of scope)
@@ -155,7 +168,7 @@ export async function detectNudity(buffer: Buffer): Promise<NudeDetection[]> {
       }
     }
 
-    if (maxScore < 0.4) continue;
+    if (maxScore < minConfidence) continue;
 
     const cx = data[0 * cols + c];
     const cy = data[1 * cols + c];
@@ -217,11 +230,12 @@ function calculateIoU(boxA: any, boxB: any) {
   return interArea / (boxAArea + boxBArea - interArea);
 }
 
-export async function blurNudity(buffer: Buffer, detections: NudeDetection[]): Promise<Buffer> {
+export async function blurNudity(buffer: Buffer, detections: NudeDetection[], blurStrength = 35): Promise<Buffer> {
   if (!detections || detections.length === 0) return buffer;
-  let image = sharp(buffer); // Cache is disabled globally, so this is safe
+  const image = sharp(buffer); // Cache is disabled globally, so this is safe
   const metadata = await image.metadata();
   const composites: any[] = [];
+  const sigma = Math.max(0.3, Math.min(100, blurStrength));
 
   for (const det of detections) {
     let [x1, y1, x2, y2] = det.box.map(Math.round);
@@ -232,9 +246,10 @@ export async function blurNudity(buffer: Buffer, detections: NudeDetection[]): P
     
     if (x2 - x1 < 2 || y2 - y1 < 2) continue;
 
-    const region = await sharp(buffer)
+    const region = await image
+      .clone()
       .extract({ left: x1, top: y1, width: x2 - x1, height: y2 - y1 })
-      .blur(35)
+      .blur(sigma)
       .modulate({ brightness: 0.9 })
       .toBuffer();
     composites.push({ input: region, left: x1, top: y1 });

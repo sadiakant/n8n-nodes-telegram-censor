@@ -23,7 +23,7 @@ export class TelegramCensorCredentials implements ICredentialType {
       type: 'string',
       typeOptions: { password: true },
       default: '',
-      description: 'Login once with a small script → get this string → paste here → never login again',
+      description: 'Login once with a small script -> get this string -> paste here -> never login again',
     },
   ];
 }

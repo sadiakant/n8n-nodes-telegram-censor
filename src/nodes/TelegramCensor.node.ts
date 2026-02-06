@@ -5,8 +5,6 @@ import { StringSession } from 'telegram/sessions';
 import { CustomFile } from 'telegram/client/uploads';
 import { detectNudity, blurNudity, releaseModel } from '../inference'; 
 
-Logger.setLevel(LogLevel.ERROR);
-
 export class TelegramCensor implements INodeType {
   description: INodeTypeDescription = {
     displayName: 'Telegram Censor',

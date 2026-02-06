@@ -1,0 +1,45 @@
+{
+  "name": "n8n-nodes-telegram-censor",
+  "version": "1.0.0",
+  "description": "Telegram Auto-Censor: Detects & blurs nudity using NudeNet (100% local, free forever)",
+  "keywords": [
+    "n8n-community-node-package",
+    "telegram",
+    "nudity",
+    "censor",
+    "moderation",
+    "nudeness",
+    "local-ai"
+  ],
+  "license": "MIT",
+  "author": "sadiakant",
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/TelegramCensorCredentials.credentials.js"
+    ],
+    "nodes": [
+      "dist/TelegramCensor.node.js"
+    ]
+  },
+  "files": [
+    "dist",
+    "models" 
+  ],
+  "dependencies": {
+    "axios": "^1.6.0",
+    "n8n-workflow": "^2.7.0",
+    "onnxruntime-node": "^1.16.0",
+    "sharp": "^0.32.6",
+    "telegram": "^2.19.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.0",
+    "copyfiles": "^2.4.1",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.9.3"
+  },
+  "scripts": {
+    "build": "npx rimraf dist && tsc && npx copyfiles -u 1 src/models/*.onnx dist/ && node copy-assets.mjs"
+  }
+}

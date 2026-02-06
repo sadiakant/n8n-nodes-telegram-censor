@@ -1,35 +1,37 @@
-name: Publish to NPM
+name: Publish to npm
 
 on:
-  release:
-    types: [published]
-
-permissions:
-  contents: read
-  id-token: write
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
 
 jobs:
   publish:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
+      id-token: write # Essential for OIDC
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Use Node.js 20.x
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20.x
-        registry-url: https://registry.npmjs.org/
-        cache: 'npm'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org/
 
-    - name: Upgrade npm (required for Trusted Publisher)
-      run: npm install -g npm@11.5.1
+      # 1. Force update npm to ensure the latest OIDC logic is used
+      - name: Update npm
+        run: npm install -g npm@latest
 
-    - name: Install dependencies
-      run: npm ci
+      - name: Install dependencies
+        run: npm ci
 
-    - name: Build project
-      run: npm run build
+      - name: Build project
+        run: npm run build
 
-    - name: Publish to NPM (Trusted Publisher)
-      run: npm publish --access public --provenance
+      # 2. Publish using the environment's id-token
+      - name: Publish to npm
+        run: npm publish --provenance
+        

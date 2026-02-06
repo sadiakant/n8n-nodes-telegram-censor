@@ -12,3 +12,6 @@ All notable changes to this project will be documented in this file.
 - Local nudity detection with NudeNet (ONNX)
 - Blur sensitive regions
 - Telegram MTProto operations (get messages, download media, replace image)
+
+## 1.0.1 - 2026-02-06
+- Test GitHub as Trusted Publisher.

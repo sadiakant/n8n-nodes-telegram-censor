@@ -1,4 +1,4 @@
-import * as ort from 'onnxruntime-node';
+import * as ort from 'onnxruntime-web';
 import sharp from 'sharp';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -63,14 +63,14 @@ async function loadModel() {
 
   logMemory('Pre-Load');
 
-  const options: ort.InferenceSession.SessionOptions = {
-    // Critical for low RAM: Disable memory arena to release RAM immediately after inference
+const options: ort.InferenceSession.SessionOptions = {
     enableCpuMemArena: false, 
     enableMemPattern: false,
     graphOptimizationLevel: 'basic', 
     intraOpNumThreads: 1,
     interOpNumThreads: 1,
-    executionProviders: ['cpu'],
+    // Use 'wasm' for compatibility with Alpine Linux/n8n Docker
+    executionProviders: ['wasm'], 
   };
 
   session = await ort.InferenceSession.create(MODEL_PATH, options);

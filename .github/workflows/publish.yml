@@ -46,8 +46,6 @@ jobs:
         run: pnpm build
 
       - name: Smart Publish Logic
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           # 1. Variables setup
           PACKAGE_NAME=$(node -p "require('./package.json').name")

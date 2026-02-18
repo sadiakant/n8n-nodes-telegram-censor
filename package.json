@@ -1,90 +1,90 @@
 {
-  "name": "n8n-nodes-telegram-censor",
-  "version": "2.0.0",
-  "description": "Telegram Censor for n8n: local nudity detection and blur to prevent Telegram channel/group bans from adult content",
-  "license": "MIT",
-  "keywords": [
-    "n8n-community-node-package",
-    "telegram",
-    "telegram-mtproto",
-    "telegram-censor",
-    "telegram-nudity-filter",
-    "telegram-nsfw",
-    "telegram-policy",
-    "censor",
-    "moderation",
-    "local-ai",
-    "nsfw",
-    "nudenet",
-    "onnx",
-    "image-blur",
-    "content-moderation",
-    "privacy",
-    "self-hosted"
-  ],
-  "packageManager": "pnpm@9.1.4",
-  "main": "index.js",
-  "scripts": {
-    "preinstall": "npx only-allow pnpm",
-    "build": "tsc && gulp build:icons",
-    "dev": "tsc --watch",
-    "format": "prettier src/nodes src/credentials --write",
-    "lint": "eslint src/nodes src/credentials",
-    "lintfix": "eslint src/nodes src/credentials --fix",
-    "prepublishOnly": "pnpm build && pnpm lint -c .eslintrc.prepublish.js src/nodes src/credentials package.json"
-  },
-  "author": {
-    "name": "sadiakant",
-    "email": "krushnakantsadiya@gmail.com"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/sadiakant/n8n-nodes-telegram-censor.git"
-  },
-  "homepage": "https://github.com/sadiakant/n8n-nodes-telegram-censor#readme",
-  "bugs": {
-    "url": "https://github.com/sadiakant/n8n-nodes-telegram-censor/issues"
-  },
-  "peerDependencies": {
-    "n8n-workflow": "*"
-  },
-  "devDependencies": {
-    "@eslint/js": "8.57.1",
-    "@n8n/node-cli": "^0.20.0",
-    "@types/node": "^25.2.0",
-    "@typescript-eslint/parser": "8.56.0",
-    "esbuild": "^0.25.0",
-    "eslint": "8.57.1",
-    "eslint-plugin-n8n-nodes-base": "^1.16.1",
-    "globals": "^15.0.0",
-    "gulp": "^4.0.2",
-    "n8n-workflow": "*",
-    "onnxruntime-web": "^1.17.0",
-    "prettier": "^3.3.2",
-    "sharp": "^0.33.5",
-    "telegram": "^2.26.22",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.0.0"
-  },
-  "n8n": {
-    "n8nNodesApiVersion": 1,
-    "credentials": [
-      "dist/credentials/TelegramCensorCredentials.credentials.js"
-    ],
-    "nodes": [
-      "dist/nodes/TelegramCensor/TelegramCensor.node.js"
-    ]
-  },
-  "files": [
-    "dist",
-    "models"
-  ],
-  "engines": {
-    "node": ">=16.0.0",
-    "pnpm": ">=9.1"
-  },
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/",
-    "access": "public"
-  }
+	"name": "n8n-nodes-telegram-censor",
+	"version": "2.0.0",
+	"description": "Telegram Censor for n8n: local nudity detection and blur to prevent Telegram channel/group bans from adult content",
+	"license": "MIT",
+	"keywords": [
+		"n8n-community-node-package",
+		"telegram",
+		"telegram-mtproto",
+		"telegram-censor",
+		"telegram-nudity-filter",
+		"telegram-nsfw",
+		"telegram-policy",
+		"censor",
+		"moderation",
+		"local-ai",
+		"nsfw",
+		"nudenet",
+		"onnx",
+		"image-blur",
+		"content-moderation",
+		"privacy",
+		"self-hosted"
+	],
+	"packageManager": "pnpm@9.1.4",
+	"main": "index.js",
+	"scripts": {
+		"preinstall": "npx only-allow pnpm",
+		"build": "tsc && gulp build:icons",
+		"dev": "tsc --watch",
+		"format": "prettier src/nodes src/credentials --write",
+		"lint": "eslint src/nodes src/credentials",
+		"lintfix": "eslint src/nodes src/credentials --fix",
+		"prepublishOnly": "pnpm lint"
+	},
+	"author": {
+		"name": "sadiakant",
+		"email": "krushnakantsadiya@gmail.com"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/sadiakant/n8n-nodes-telegram-censor.git"
+	},
+	"homepage": "https://github.com/sadiakant/n8n-nodes-telegram-censor#readme",
+	"bugs": {
+		"url": "https://github.com/sadiakant/n8n-nodes-telegram-censor/issues"
+	},
+	"peerDependencies": {
+		"n8n-workflow": "*"
+	},
+	"devDependencies": {
+		"@eslint/js": "8.57.1",
+		"@n8n/node-cli": "^0.20.0",
+		"@types/node": "^25.2.0",
+		"@typescript-eslint/parser": "8.56.0",
+		"esbuild": "^0.25.0",
+		"eslint": "8.57.1",
+		"eslint-plugin-n8n-nodes-base": "^1.16.1",
+		"globals": "^15.0.0",
+		"gulp": "^4.0.2",
+		"n8n-workflow": "*",
+		"onnxruntime-web": "^1.17.0",
+		"prettier": "^3.3.2",
+		"sharp": "^0.33.5",
+		"telegram": "^2.26.22",
+		"typescript": "^5.9.3",
+		"typescript-eslint": "^8.0.0"
+	},
+	"n8n": {
+		"n8nNodesApiVersion": 1,
+		"credentials": [
+			"dist/credentials/TelegramCensorCredentials.credentials.js"
+		],
+		"nodes": [
+			"dist/nodes/TelegramCensor/TelegramCensor.node.js"
+		]
+	},
+	"files": [
+		"dist",
+		"models"
+	],
+	"engines": {
+		"node": ">=16.0.0",
+		"pnpm": ">=9.1"
+	},
+	"publishConfig": {
+		"registry": "https://registry.npmjs.org/",
+		"access": "public"
+	}
 }

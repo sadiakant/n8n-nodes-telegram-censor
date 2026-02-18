@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write # ✅ Required for Trusted Publishing
+      id-token: write # ✅ REQUIRED for Trusted Publishing
 
     steps:
       - name: Checkout repository
@@ -20,8 +20,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          # For Trusted Publishing, we just set the registry.
-          # We do NOT set an auth token here.
+          # ✅ REQUIRED: This tells npm which registry we are using.
+          # It generates the .npmrc file needed to solve ENEEDAUTH.
+          registry-url: https://registry.npmjs.org/
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -51,7 +52,6 @@ jobs:
           PACKAGE_NAME=$(node -p "require('./package.json').name")
           LOCAL_VERSION=$(node -p "require('./package.json').version")
 
-          # Check remote version (silence errors if package doesn't exist yet)
           REMOTE_VERSION=$(npm view $PACKAGE_NAME version 2>/dev/null || echo "0.0.0")
 
           echo "🔍 Checking Versions..."
@@ -71,17 +71,10 @@ jobs:
 
           echo "📊 Status : $STATUS"
 
-          # ❌ REMOVED: npm config set //registry.npmjs.org/:_authToken...
-          # REASON: Trusted Publishing handles auth automatically via the --provenance flag.
-
           if [ "$STATUS" == "GREATER" ]; then
             echo "🚀 NEW VERSION DETECTED! Publishing $LOCAL_VERSION to @latest..."
-
-            # ✅ Trusted Publishing works here because of:
-            # 1. permissions: id-token: write (at top of file)
-            # 2. --provenance flag (below)
+            # ✅ PROVENANCE flag triggers the Keyless OIDC exchange
             npm publish --provenance --access public --ignore-scripts
-
             echo "✅ Published $LOCAL_VERSION to @latest"
 
           elif [ "$STATUS" == "EQUAL" ]; then
@@ -89,12 +82,8 @@ jobs:
             TIMESTAMP=$(date +%d%b%Y.%I%M%p)
             DEV_VERSION="${LOCAL_VERSION}-dev.${TIMESTAMP}"
 
-            # Update version in package.json temporarily without git tag
             npm version $DEV_VERSION --no-git-tag-version --ignore-scripts
-
-            # Publish with provenance
             npm publish --tag dev --provenance --access public --ignore-scripts
-
             echo "✅ Published $DEV_VERSION to @dev"
 
           else

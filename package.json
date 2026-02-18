@@ -1,7 +1,8 @@
 {
   "name": "n8n-nodes-telegram-censor",
-  "version": "1.0.5",
+  "version": "2.0.0",
   "description": "Telegram Censor for n8n: local nudity detection and blur to prevent Telegram channel/group bans from adult content",
+  "license": "MIT",
   "keywords": [
     "n8n-community-node-package",
     "telegram",
@@ -21,7 +22,17 @@
     "privacy",
     "self-hosted"
   ],
-  "license": "MIT",
+  "packageManager": "pnpm@9.1.4",
+  "main": "index.js",
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "build": "tsc && gulp build:icons",
+    "dev": "tsc --watch",
+    "format": "prettier src/nodes src/credentials --write",
+    "lint": "eslint src/nodes src/credentials",
+    "lintfix": "eslint src/nodes src/credentials --fix",
+    "prepublishOnly": "pnpm build && pnpm lint -c .eslintrc.prepublish.js src/nodes src/credentials package.json"
+  },
   "author": {
     "name": "sadiakant",
     "email": "krushnakantsadiya@gmail.com"
@@ -34,40 +45,46 @@
   "bugs": {
     "url": "https://github.com/sadiakant/n8n-nodes-telegram-censor/issues"
   },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  },
+  "devDependencies": {
+    "@eslint/js": "8.57.1",
+    "@n8n/node-cli": "^0.20.0",
+    "@types/node": "^25.2.0",
+    "@typescript-eslint/parser": "8.56.0",
+    "esbuild": "^0.25.0",
+    "eslint": "8.57.1",
+    "eslint-plugin-n8n-nodes-base": "^1.16.1",
+    "globals": "^15.0.0",
+    "gulp": "^4.0.2",
+    "n8n-workflow": "*",
+    "onnxruntime-web": "^1.17.0",
+    "prettier": "^3.3.2",
+    "sharp": "^0.33.5",
+    "telegram": "^2.26.22",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.0.0"
+  },
   "n8n": {
     "n8nNodesApiVersion": 1,
     "credentials": [
       "dist/credentials/TelegramCensorCredentials.credentials.js"
     ],
     "nodes": [
-      "dist/nodes/TelegramCensor.node.js"
+      "dist/nodes/TelegramCensor/TelegramCensor.node.js"
     ]
   },
   "files": [
-    "dist"
+    "dist",
+    "models"
   ],
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=16.0.0",
+    "pnpm": ">=9.1"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
     "access": "public"
-  },
-  "dependencies": {
-    "n8n-workflow": "^2.7.0",
-    "onnxruntime-web": "^1.17.0",
-    "sharp": "^0.33.5",
-    "telegram": "^2.19.0"
-  },
-  "devDependencies": {
-    "@types/node": "^25.2.0",
-    "rimraf": "^5.0.5",
-    "typescript": "^5.9.3"
-  },
-  "scripts": {
-    "build": "npx rimraf dist && tsc && node copy-assets.mjs",
-    "dev": "tsc --watch",
-    "test": "echo \"No tests defined\"",
-    "prepublishOnly": "npm run build"
   }
 }

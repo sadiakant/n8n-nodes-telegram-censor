@@ -4,13 +4,31 @@ import * as path from 'path';
 import * as fs from 'fs';
 
 // --- OPTIMIZATION #1: Disable Sharp Cache ---
-// Sharp keeps decompressed images in memory by default. 
+// Sharp keeps decompressed images in memory by default.
 // We must disable this for low-RAM environments.
 sharp.cache(false);
 sharp.simd(true); // Keep SIMD for speed, it doesn't cost much RAM
 
+
 // --- Configuration ---
-const MODEL_PATH = path.resolve(__dirname, './models/NudeNet-v3.4-weights-320n.onnx');
+const MODEL_PATH = path.join(__dirname, 'models', 'NudeNet-v3.4-weights-320n.onnx');
+
+// ─── Validate at startup (fail fast with clear message) ──────────────────────
+if (!fs.existsSync(MODEL_PATH)) {
+  // Show both what was expected and what actually exists to help debug
+  const modelsDir = path.join(__dirname, 'models');
+  const dirExists = fs.existsSync(modelsDir);
+  const dirContents = dirExists ? fs.readdirSync(modelsDir).join(', ') || '(empty)' : '(directory missing)';
+
+  throw new Error(
+    `[TelegramCensor] Model file not found.\n` +
+    `Expected path : ${MODEL_PATH}\n` +
+    `Models folder : ${dirExists ? 'EXISTS' : 'MISSING'} → contents: ${dirContents}\n` +
+    `__dirname     : ${__dirname}\n\n` +
+    `Fix: Run "npm run build" which copies models to dist/src/models/`,
+  );
+}
+
 const INPUT_SIZE = 320;
 
 const LABELS = [
@@ -22,7 +40,7 @@ const LABELS = [
 ];
 
 const UNSAFE_CLASSES = [
-  'FEMALE_GENITALIA_EXPOSED', 'MALE_GENITALIA_EXPOSED', 'BUTTOCKS_EXPOSED', 
+  'FEMALE_GENITALIA_EXPOSED', 'MALE_GENITALIA_EXPOSED', 'BUTTOCKS_EXPOSED',
   'FEMALE_BREAST_EXPOSED', "MALE_BREAST_EXPOSED", 'ANUS_EXPOSED'
 ];
 
@@ -58,24 +76,27 @@ async function loadModel() {
   if (session) return session;
 
   if (!fs.existsSync(MODEL_PATH)) {
-    throw new Error(`Model file not found at: ${MODEL_PATH}`);
+    throw new Error(
+      `Model file not found at ${MODEL_PATH}. ` +
+      `Make sure the "models" folder exists in the package root.`,
+    );
   }
 
   logMemory('Pre-Load');
 
 const options: ort.InferenceSession.SessionOptions = {
-    enableCpuMemArena: false, 
+    enableCpuMemArena: false,
     enableMemPattern: false,
-    graphOptimizationLevel: 'basic', 
+    graphOptimizationLevel: 'basic',
     intraOpNumThreads: 1,
     interOpNumThreads: 1,
     // Use 'wasm' for compatibility with Alpine Linux/n8n Docker
-    executionProviders: ['wasm'], 
+    executionProviders: ['wasm'],
   };
 
   session = await ort.InferenceSession.create(MODEL_PATH, options);
   logMemory('Post-Load');
-  
+
   return session;
 }
 
@@ -85,12 +106,12 @@ const options: ort.InferenceSession.SessionOptions = {
 export async function releaseModel() {
   if (session) {
     // @ts-ignore - Private method force release if available in newer bindings
-    if (session.release) await session.release(); 
+    if (session.release) await session.release();
     session = null;
-    
+
     // Hint V8 to cleanup if flags enabled (usually not in prod, but harmless)
     if (global.gc) global.gc();
-    
+
     logMemory('Unloaded');
   }
 }
@@ -98,11 +119,11 @@ export async function releaseModel() {
 export async function detectNudity(buffer: Buffer, minConfidence = DEFAULT_MIN_CONFIDENCE): Promise<NudeDetection[]> {
   // Scope the session usage tightly
   const inferenceSession = await loadModel();
-  
+
   // 1. Preprocessing with Sharp
   const img = sharp(buffer);
   const metadata = await img.metadata();
-  
+
   const origW = metadata.width!;
   const origH = metadata.height!;
 
@@ -117,14 +138,14 @@ export async function detectNudity(buffer: Buffer, minConfidence = DEFAULT_MIN_C
   // Previous code allocated an intermediate Float32Array for normalization (0-1).
   // We now write directly from uint8 buffer to the CHW tensor buffer.
   // This saves 1x memory allocation of size (320*320*3*4 bytes).
-  
+
   const chwData = acquireChwBuffer();
   const pixelCount = INPUT_SIZE * INPUT_SIZE;
-  
+
   for (let i = 0; i < pixelCount; i++) {
     // Source index (Interleaved RGB)
     const srcIdx = i * 3;
-    
+
     // Normalize (0-255 -> 0.0-1.0) and reorder to CHW (RRR...GGG...BBB...) on the fly
     chwData[i]                  = resizedBuffer[srcIdx] / 255.0;     // R
     chwData[i + pixelCount]     = resizedBuffer[srcIdx + 1] / 255.0; // G
@@ -133,11 +154,11 @@ export async function detectNudity(buffer: Buffer, minConfidence = DEFAULT_MIN_C
 
   // 4. Inference
   const tensor = new ort.Tensor('float32', chwData, [1, 3, INPUT_SIZE, INPUT_SIZE]);
-  
+
   // Run inference
   const feeds: Record<string, ort.Tensor> = {};
   feeds[inferenceSession.inputNames[0]] = tensor;
-  
+
   const results = await inferenceSession.run(feeds);
   const output = results[inferenceSession.outputNames[0]];
   releaseChwBuffer(chwData);
@@ -148,7 +169,7 @@ export async function detectNudity(buffer: Buffer, minConfidence = DEFAULT_MIN_C
   // 6. Post-Processing
   const data = output.data as Float32Array;
   const dims = output.dims; // [1, 22, 2100]
-  
+
   const rows = dims[1]; // 22 classes
   const cols = dims[2]; // 2100 anchors
 
@@ -176,7 +197,7 @@ export async function detectNudity(buffer: Buffer, minConfidence = DEFAULT_MIN_C
     const h  = data[3 * cols + c];
 
     const label = LABELS[maxClassIdx];
-    
+
     if (UNSAFE_CLASSES.includes(label)) {
        boxes.push({
          x1: cx - w / 2,
@@ -239,11 +260,11 @@ export async function blurNudity(buffer: Buffer, detections: NudeDetection[], bl
 
   for (const det of detections) {
     let [x1, y1, x2, y2] = det.box.map(Math.round);
-    x1 = Math.max(0, x1);
-    y1 = Math.max(0, y1);
-    x2 = Math.min(metadata.width!, x2);
-    y2 = Math.min(metadata.height!, y2);
-    
+    const width = metadata.width ?? 0;
+    const height = metadata.height ?? 0;
+    x2 = Math.min(width, x2);
+    y2 = Math.min(height, y2);
+
     if (x2 - x1 < 2 || y2 - y1 < 2) continue;
 
     const region = await image

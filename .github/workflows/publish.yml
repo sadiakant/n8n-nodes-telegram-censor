@@ -52,8 +52,6 @@ jobs:
       # ✅ Smart Publish uses npm publish (npm handles registry auth)
       # NODE_AUTH_TOKEN is auto-set by setup-node via registry-url
       - name: Smart Publish Logic
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           PACKAGE_NAME=$(node -p "require('./package.json').name")
           LOCAL_VERSION=$(node -p "require('./package.json').version")

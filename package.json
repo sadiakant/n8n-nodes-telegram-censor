@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-telegram-censor",
-	"version": "2.0.0",
+	"version": "2.0.1",
 	"description": "Telegram Censor for n8n: local nudity detection and blur to prevent Telegram channel/group bans from adult content",
 	"license": "MIT",
 	"keywords": [

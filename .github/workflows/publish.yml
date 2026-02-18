@@ -16,32 +16,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ✅ CRITICAL: setup-node MUST come BEFORE pnpm/action-setup
-      # AND registry-url must be set here - this auto-wires NODE_AUTH_TOKEN to ~/.npmrc
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org/
-          # ✅ NO cache here - pnpm handles its own cache below
 
-      # ✅ Setup pnpm AFTER node
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 9.1.4
-
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-
-      - name: Cache pnpm store
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -49,8 +33,6 @@ jobs:
       - name: Build project
         run: pnpm build
 
-      # ✅ Smart Publish uses npm publish (npm handles registry auth)
-      # NODE_AUTH_TOKEN is auto-set by setup-node via registry-url
       - name: Smart Publish Logic
         run: |
           PACKAGE_NAME=$(node -p "require('./package.json').name")

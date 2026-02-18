@@ -25,7 +25,7 @@
 	"packageManager": "pnpm@9.1.4",
 	"main": "index.js",
 	"scripts": {
-		"preinstall": "npx only-allow pnpm",
+		"preinstall": "npx only-allow pnpm --ignore-scripts",
 		"build": "tsc && gulp build:icons",
 		"dev": "tsc --watch",
 		"format": "prettier src/nodes src/credentials --write",

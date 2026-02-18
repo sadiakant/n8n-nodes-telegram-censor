@@ -16,12 +16,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # ✅ CRITICAL: setup-node MUST come BEFORE pnpm/action-setup
+      # AND registry-url must be set here - this auto-wires NODE_AUTH_TOKEN to ~/.npmrc
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org/
+          # ✅ NO cache here - pnpm handles its own cache below
 
+      # ✅ Setup pnpm AFTER node
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -45,20 +49,21 @@ jobs:
       - name: Build project
         run: pnpm build
 
+      # ✅ Smart Publish uses npm publish (npm handles registry auth)
+      # NODE_AUTH_TOKEN is auto-set by setup-node via registry-url
       - name: Smart Publish Logic
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          # 1. Variables setup
           PACKAGE_NAME=$(node -p "require('./package.json').name")
           LOCAL_VERSION=$(node -p "require('./package.json').version")
 
-          # Check current version on NPM (0.0.0 if package is new)
           REMOTE_VERSION=$(npm view $PACKAGE_NAME version 2>/dev/null || echo "0.0.0")
 
           echo "🔍 Checking Versions..."
           echo "📍 Local  : $LOCAL_VERSION"
           echo "🌐 Remote : $REMOTE_VERSION"
 
-          # 2. Version comparison using Node.js
           STATUS=$(node -e "
             const local  = '$LOCAL_VERSION'.split('.').map(Number);
             const remote = '$REMOTE_VERSION'.split('.').map(Number);
@@ -72,22 +77,20 @@ jobs:
 
           echo "📊 Status : $STATUS"
 
-          # 3. Decision Tree
           if [ "$STATUS" == "GREATER" ]; then
             echo "🚀 NEW VERSION DETECTED! Publishing $LOCAL_VERSION to @latest..."
-            npm publish --provenance --access public
+            npm publish --provenance --access public --ignore-scripts
+            echo "✅ Published $LOCAL_VERSION to @latest"
 
           elif [ "$STATUS" == "EQUAL" ]; then
             echo "🛠️ SAME VERSION. Publishing to @dev tag..."
             TIMESTAMP=$(date +%d%b%Y.%I%M%p)
             DEV_VERSION="${LOCAL_VERSION}-dev.${TIMESTAMP}"
-
-            npm version $DEV_VERSION --no-git-tag-version
-            npm publish --tag dev --provenance --access public
-            echo "✅ Published version $DEV_VERSION with tag @dev"
+            npm version $DEV_VERSION --no-git-tag-version --ignore-scripts
+            npm publish --tag dev --provenance --access public --ignore-scripts
+            echo "✅ Published $DEV_VERSION to @dev"
 
           else
-            echo "❌ ERROR: Local version ($LOCAL_VERSION) is LOWER than NPM ($REMOTE_VERSION)."
-            echo "Please update version in package.json."
+            echo "❌ ERROR: Local ($LOCAL_VERSION) < Remote ($REMOTE_VERSION). Update package.json version."
             exit 1
           fi

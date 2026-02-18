@@ -10,22 +10,20 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
+      id-token: write # ✅ Required for Trusted Publishing
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ✅ CRITICAL: setup-node MUST come BEFORE pnpm/action-setup
-      # AND registry-url must be set here - this auto-wires NODE_AUTH_TOKEN to ~/.npmrc
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org/
-          # ✅ NO cache here - pnpm handles its own cache below
+          # For Trusted Publishing, we just set the registry.
+          # We do NOT set an auth token here.
 
-      # ✅ Setup pnpm AFTER node
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -50,11 +48,11 @@ jobs:
         run: pnpm build
 
       - name: Smart Publish Logic
-        # ✅ ADD: id-token exchange for npm provenance
         run: |
           PACKAGE_NAME=$(node -p "require('./package.json').name")
           LOCAL_VERSION=$(node -p "require('./package.json').version")
 
+          # Check remote version (silence errors if package doesn't exist yet)
           REMOTE_VERSION=$(npm view $PACKAGE_NAME version 2>/dev/null || echo "0.0.0")
 
           echo "🔍 Checking Versions..."
@@ -74,23 +72,30 @@ jobs:
 
           echo "📊 Status : $STATUS"
 
-          # ✅ FIX: Request OIDC token from GitHub and configure npm properly
-          # This exchanges the GitHub ID token for npm's expected format
-          NPM_TOKEN=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "$ACTIONS_ID_TOKEN_REQUEST_URL" | jq -r '.value')
-          npm config set //registry.npmjs.org/:_authToken=$NPM_TOKEN
+          # ❌ REMOVED: npm config set //registry.npmjs.org/:_authToken...
+          # REASON: Trusted Publishing handles auth automatically via the --provenance flag.
 
           if [ "$STATUS" == "GREATER" ]; then
             echo "🚀 NEW VERSION DETECTED! Publishing $LOCAL_VERSION to @latest..."
+
+            # ✅ Trusted Publishing works here because of:
+            # 1. permissions: id-token: write (at top of file)
+            # 2. --provenance flag (below)
             npm publish --provenance --access public --ignore-scripts
+
             echo "✅ Published $LOCAL_VERSION to @latest"
 
           elif [ "$STATUS" == "EQUAL" ]; then
             echo "🛠️ SAME VERSION. Publishing to @dev tag..."
             TIMESTAMP=$(date +%d%b%Y.%I%M%p)
             DEV_VERSION="${LOCAL_VERSION}-dev.${TIMESTAMP}"
+
+            # Update version in package.json temporarily without git tag
             npm version $DEV_VERSION --no-git-tag-version --ignore-scripts
+
+            # Publish with provenance
             npm publish --tag dev --provenance --access public --ignore-scripts
+
             echo "✅ Published $DEV_VERSION to @dev"
 
           else

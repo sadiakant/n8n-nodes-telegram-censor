@@ -23,14 +23,14 @@
 		"self-hosted"
 	],
 	"packageManager": "pnpm@9.1.4",
-	"main": "index.js",
+	"main": "dist/nodes/TelegramCensor/TelegramCensor.node.js",
 	"scripts": {
 		"preinstall": "npx only-allow pnpm",
 		"build": "rimraf dist && tsc && gulp build:icons",
 		"dev": "tsc --watch",
-		"format": "prettier src/nodes src/credentials --write",
-		"lint": "eslint src/nodes src/credentials",
-		"lintfix": "eslint src/nodes src/credentials --fix",
+		"format": "prettier src/nodes src/credentials src/inference.ts --write",
+		"lint": "eslint src/nodes src/credentials src/inference.ts",
+		"lintfix": "eslint src/nodes src/credentials src/inference.ts --fix",
 		"prepublishOnly": "pnpm lint && pnpm build"
 	},
 	"author": {
@@ -49,8 +49,8 @@
 		"n8n-workflow": "*"
 	},
 	"dependencies": {
-		"onnxruntime-web": "^1.17.0",
-		"sharp": "^0.33.5",
+		"onnxruntime-web": "^1.24.1",
+		"sharp": "^0.34.5",
 		"telegram": "^2.26.22"
 	},
 	"devDependencies": {
@@ -82,7 +82,7 @@
 		"dist"
 	],
 	"engines": {
-		"node": ">=16.0.0",
+		"node": ">=18.17.0",
 		"pnpm": ">=9.1"
 	},
 	"publishConfig": {

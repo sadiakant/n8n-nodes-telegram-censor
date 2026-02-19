@@ -8,10 +8,9 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    # ✅ PERMISSIONS: This is required for Trusted Publishing
     permissions:
       contents: read
-      id-token: write
+      id-token: write # ✅ Required for Trusted Publishing
 
     steps:
       - name: Checkout repository
@@ -20,8 +19,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22.14.0
-          # ✅ REGISTRY-URL: This correctly creates the .npmrc without a bad token
+          node-version: 20
+          # ✅ We include this to set the registry location.
+          # Because you fixed the filename to 'publish.yml',
+          # the 'Access token expired' error will not happen this time.
           registry-url: https://registry.npmjs.org/
 
       - name: Setup pnpm
@@ -29,7 +30,18 @@ jobs:
         with:
           version: 9.1.4
 
-      # ... (pnpm cache and install steps are fine) ...
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -37,29 +49,42 @@ jobs:
         run: pnpm build
 
       - name: Smart Publish Logic
-        # ❌ NO env: NODE_AUTH_TOKEN needed here
+        # ❌ NO secrets needed here for Trusted Publishing
         run: |
           PACKAGE_NAME=$(node -p "require('./package.json').name")
-          # ... (your version check logic is fine) ...
           LOCAL_VERSION=$(node -p "require('./package.json').version")
+
+          # Use || echo "0.0.0" to handle first-time publish scenarios
           REMOTE_VERSION=$(npm view $PACKAGE_NAME version 2>/dev/null || echo "0.0.0")
+
           echo "🔍 Checking Versions..."
           echo "📍 Local  : $LOCAL_VERSION"
           echo "🌐 Remote : $REMOTE_VERSION"
-          STATUS=$(node -e "const local='$LOCAL_VERSION'.split('.').map(Number); const remote='$REMOTE_VERSION'.split('.').map(Number); let result='EQUAL'; for(let i=0;i<3;i++){if(local[i]>(remote[i]||0)){result='GREATER';break;} if(local[i]<(remote[i]||0)){result='SMALLER';break;}} console.log(result);")
+
+          STATUS=$(node -e "
+            const local  = '$LOCAL_VERSION'.split('.').map(Number);
+            const remote = '$REMOTE_VERSION'.split('.').map(Number);
+            let result = 'EQUAL';
+            for (let i = 0; i < 3; i++) {
+              if (local[i] > (remote[i] || 0)) { result = 'GREATER'; break; }
+              if (local[i] < (remote[i] || 0)) { result = 'SMALLER'; break; }
+            }
+            console.log(result);
+          ")
+
           echo "📊 Status : $STATUS"
 
           if [ "$STATUS" == "GREATER" ]; then
             echo "🚀 NEW VERSION DETECTED! Publishing $LOCAL_VERSION to @latest..."
-            # ✅ PROVENANCE: This triggers OIDC and solves the EOTP error
+            # ✅ --provenance triggers the OIDC Keyless exchange
             npm publish --provenance --access public --ignore-scripts
             echo "✅ Published $LOCAL_VERSION to @latest"
 
           elif [ "$STATUS" == "EQUAL" ]; then
-            # ... (your dev publish logic is fine, just ensure it has --provenance) ...
             echo "🛠️ SAME VERSION. Publishing to @dev tag..."
             TIMESTAMP=$(date +%d%b%Y.%I%M%p)
             DEV_VERSION="${LOCAL_VERSION}-dev.${TIMESTAMP}"
+
             npm version $DEV_VERSION --no-git-tag-version --ignore-scripts
             npm publish --tag dev --provenance --access public --ignore-scripts
             echo "✅ Published $DEV_VERSION to @dev"

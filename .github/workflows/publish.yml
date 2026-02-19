@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      # id-token: write is not strictly needed for token auth, but doesn't hurt
       id-token: write
 
     steps:
@@ -20,7 +21,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          # ✅ This configures .npmrc correctly for authentication
           registry-url: https://registry.npmjs.org/
 
       - name: Setup pnpm
@@ -47,14 +47,12 @@ jobs:
         run: pnpm build
 
       - name: Smart Publish Logic
-        # ✅ PASS THE SECRET TOKEN HERE
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           PACKAGE_NAME=$(node -p "require('./package.json').name")
           LOCAL_VERSION=$(node -p "require('./package.json').version")
 
-          # Silence error if package doesn't exist yet
           REMOTE_VERSION=$(npm view $PACKAGE_NAME version 2>/dev/null || echo "0.0.0")
 
           echo "🔍 Checking Versions..."
@@ -74,11 +72,9 @@ jobs:
 
           echo "📊 Status : $STATUS"
 
-          # ⚠️ Note: We removed --provenance here to use standard Token Auth
-          # This ensures immediate success.
-
           if [ "$STATUS" == "GREATER" ]; then
             echo "🚀 NEW VERSION DETECTED! Publishing $LOCAL_VERSION to @latest..."
+            # ❌ REMOVED --provenance FLAG. This is the fix.
             npm publish --access public --ignore-scripts
             echo "✅ Published $LOCAL_VERSION to @latest"
 
@@ -88,6 +84,7 @@ jobs:
             DEV_VERSION="${LOCAL_VERSION}-dev.${TIMESTAMP}"
 
             npm version $DEV_VERSION --no-git-tag-version --ignore-scripts
+            # ❌ REMOVED --provenance FLAG. This is the fix.
             npm publish --tag dev --access public --ignore-scripts
             echo "✅ Published $DEV_VERSION to @dev"
 

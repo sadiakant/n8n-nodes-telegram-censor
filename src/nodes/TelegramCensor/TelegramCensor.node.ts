@@ -234,6 +234,28 @@ export class TelegramCensor implements INodeType {
       return n;
     };
 
+    const sleepMs = async (ms: number): Promise<void> =>
+      await new Promise((resolve) => setTimeout(resolve, ms));
+
+    const isDownloadTimeoutError = (error: unknown): boolean => {
+      if (!(error instanceof Error)) return false;
+
+      const maybeRpcError = error as Error & { code?: number; errorMessage?: string };
+      const code = typeof maybeRpcError.code === 'number' ? Math.abs(maybeRpcError.code) : undefined;
+      const rawMessage = typeof maybeRpcError.errorMessage === 'string' ? maybeRpcError.errorMessage : error.message;
+      const normalized = rawMessage.toLowerCase();
+
+      return (
+        code === 503 ||
+        normalized.includes('timeout') ||
+        normalized.includes('upload.getfile') ||
+        normalized.includes('etimedout') ||
+        normalized.includes('econnreset') ||
+        normalized.includes('socket hang up') ||
+        normalized.includes('eai_again')
+      );
+    };
+
     try {
       try {
         await client.connect();
@@ -326,14 +348,44 @@ export class TelegramCensor implements INodeType {
               const chatId    = this.getNodeParameter('downloadChatId', i, '') as string;
               const messageId = toInt(this.getNodeParameter('downloadMessageId', i, 0), 'Message ID');
 
-              const messages = await client.getMessages(chatId, { ids: [messageId] });
-              const msg      = messages[0];
+              const maxAttempts = 4;
+              let attempt = 0;
+              let buffer: Buffer | undefined;
 
-              if (!msg?.media) {
-                throw new Error(`No media found in message ID ${messageId}`);
+              while (attempt < maxAttempts && !buffer) {
+                attempt += 1;
+
+                const messages = await client.getMessages(chatId, { ids: [messageId] });
+                const msg      = messages[0];
+
+                if (!msg?.media) {
+                  throw new Error(`No media found in message ID ${messageId}`);
+                }
+
+                try {
+                  // Pass the full message object (not just media) so GramJS has complete context.
+                  const downloaded = await client.downloadMedia(msg, {});
+
+                  if (!downloaded) {
+                    throw new Error(`Telegram returned empty media payload for message ID ${messageId}`);
+                  }
+                  if (typeof downloaded === 'string') {
+                    throw new Error(`Unexpected download output type for message ID ${messageId}`);
+                  }
+
+                  buffer = downloaded;
+                } catch (error) {
+                  if (attempt >= maxAttempts || !isDownloadTimeoutError(error)) {
+                    throw error;
+                  }
+                  await sleepMs(attempt * 1200);
+                }
               }
 
-              const buffer     = await client.downloadMedia(msg.media, {});
+              if (!buffer) {
+                throw new Error(`Failed to download media for message ID ${messageId} after ${maxAttempts} attempts.`);
+              }
+
               const binaryData = await this.helpers.prepareBinaryData(buffer as Buffer);
               binaryData.fileName = `media_${messageId}.jpg`;
               binaryData.mimeType = 'image/jpeg';

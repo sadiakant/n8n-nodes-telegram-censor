@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write # ✅ REQUIRED for Trusted Publishing
+      id-token: write
 
     steps:
       - name: Checkout repository
@@ -20,8 +20,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          # ❌ REMOVED: registry-url
-          # We will set this manually to avoid the "empty token" bug
+          # ✅ This configures .npmrc correctly for authentication
+          registry-url: https://registry.npmjs.org/
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -46,12 +46,10 @@ jobs:
       - name: Build project
         run: pnpm build
 
-      # ✅ FIX: Create a clean .npmrc file
-      # This fixes ENEEDAUTH while avoiding the "Access token expired" bug
-      - name: Configure NPM Registry
-        run: echo "registry=https://registry.npmjs.org/" > .npmrc
-
       - name: Smart Publish Logic
+        # ✅ PASS THE SECRET TOKEN HERE
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           PACKAGE_NAME=$(node -p "require('./package.json').name")
           LOCAL_VERSION=$(node -p "require('./package.json').version")
@@ -76,10 +74,12 @@ jobs:
 
           echo "📊 Status : $STATUS"
 
+          # ⚠️ Note: We removed --provenance here to use standard Token Auth
+          # This ensures immediate success.
+
           if [ "$STATUS" == "GREATER" ]; then
             echo "🚀 NEW VERSION DETECTED! Publishing $LOCAL_VERSION to @latest..."
-            # Added explicit registry flag just in case
-            npm publish --provenance --access public --ignore-scripts --registry https://registry.npmjs.org/
+            npm publish --access public --ignore-scripts
             echo "✅ Published $LOCAL_VERSION to @latest"
 
           elif [ "$STATUS" == "EQUAL" ]; then
@@ -88,7 +88,7 @@ jobs:
             DEV_VERSION="${LOCAL_VERSION}-dev.${TIMESTAMP}"
 
             npm version $DEV_VERSION --no-git-tag-version --ignore-scripts
-            npm publish --tag dev --provenance --access public --ignore-scripts --registry https://registry.npmjs.org/
+            npm publish --tag dev --access public --ignore-scripts
             echo "✅ Published $DEV_VERSION to @dev"
 
           else

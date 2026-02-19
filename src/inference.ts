@@ -25,7 +25,7 @@ if (!fs.existsSync(MODEL_PATH)) {
     `Expected path : ${MODEL_PATH}\n` +
     `Models folder : ${dirExists ? 'EXISTS' : 'MISSING'} → contents: ${dirContents}\n` +
     `__dirname     : ${__dirname}\n\n` +
-    `Fix: Run "npm run build" which copies models to dist/src/models/`,
+    `Fix: Run "npm run build" which copies models to dist/models/`,
   );
 }
 

@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-telegram-censor",
-	"version": "2.0.2",
+	"version": "2.0.3",
 	"description": "Telegram Censor for n8n: local nudity detection and blur to prevent Telegram channel/group bans from adult content",
 	"license": "MIT",
 	"keywords": [
@@ -26,12 +26,12 @@
 	"main": "index.js",
 	"scripts": {
 		"preinstall": "npx only-allow pnpm",
-		"build": "tsc && gulp build:icons",
+		"build": "rimraf dist && tsc && gulp build:icons",
 		"dev": "tsc --watch",
 		"format": "prettier src/nodes src/credentials --write",
 		"lint": "eslint src/nodes src/credentials",
 		"lintfix": "eslint src/nodes src/credentials --fix",
-		"prepublishOnly": "pnpm lint"
+		"prepublishOnly": "pnpm lint && pnpm build"
 	},
 	"author": {
 		"name": "sadiakant",
@@ -48,6 +48,11 @@
 	"peerDependencies": {
 		"n8n-workflow": "*"
 	},
+	"dependencies": {
+		"onnxruntime-web": "^1.17.0",
+		"sharp": "^0.33.5",
+		"telegram": "^2.26.22"
+	},
 	"devDependencies": {
 		"@eslint/js": "8.57.1",
 		"@n8n/node-cli": "^0.20.0",
@@ -59,10 +64,8 @@
 		"globals": "^15.0.0",
 		"gulp": "^4.0.2",
 		"n8n-workflow": "*",
-		"onnxruntime-web": "^1.17.0",
 		"prettier": "^3.3.2",
-		"sharp": "^0.33.5",
-		"telegram": "^2.26.22",
+		"rimraf": "^5.0.5",
 		"typescript": "^5.9.3",
 		"typescript-eslint": "^8.0.0"
 	},
@@ -76,8 +79,7 @@
 		]
 	},
 	"files": [
-		"dist",
-		"models"
+		"dist"
 	],
 	"engines": {
 		"node": ">=16.0.0",

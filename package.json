@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-telegram-censor",
-	"version": "2.0.1",
+	"version": "2.0.2",
 	"description": "Telegram Censor for n8n: local nudity detection and blur to prevent Telegram channel/group bans from adult content",
 	"license": "MIT",
 	"keywords": [
@@ -25,7 +25,7 @@
 	"packageManager": "pnpm@9.1.4",
 	"main": "index.js",
 	"scripts": {
-		"preinstall": "npx only-allow pnpm --ignore-scripts",
+		"preinstall": "npx only-allow pnpm",
 		"build": "tsc && gulp build:icons",
 		"dev": "tsc --watch",
 		"format": "prettier src/nodes src/credentials --write",

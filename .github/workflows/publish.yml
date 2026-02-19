@@ -20,9 +20,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          # ✅ REQUIRED: This tells npm which registry we are using.
-          # It generates the .npmrc file needed to solve ENEEDAUTH.
-          registry-url: https://registry.npmjs.org/
+          # ❌ REMOVED: registry-url
+          # We will set this manually to avoid the "empty token" bug
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -47,11 +46,17 @@ jobs:
       - name: Build project
         run: pnpm build
 
+      # ✅ FIX: Create a clean .npmrc file
+      # This fixes ENEEDAUTH while avoiding the "Access token expired" bug
+      - name: Configure NPM Registry
+        run: echo "registry=https://registry.npmjs.org/" > .npmrc
+
       - name: Smart Publish Logic
         run: |
           PACKAGE_NAME=$(node -p "require('./package.json').name")
           LOCAL_VERSION=$(node -p "require('./package.json').version")
 
+          # Silence error if package doesn't exist yet
           REMOTE_VERSION=$(npm view $PACKAGE_NAME version 2>/dev/null || echo "0.0.0")
 
           echo "🔍 Checking Versions..."
@@ -73,8 +78,8 @@ jobs:
 
           if [ "$STATUS" == "GREATER" ]; then
             echo "🚀 NEW VERSION DETECTED! Publishing $LOCAL_VERSION to @latest..."
-            # ✅ PROVENANCE flag triggers the Keyless OIDC exchange
-            npm publish --provenance --access public --ignore-scripts
+            # Added explicit registry flag just in case
+            npm publish --provenance --access public --ignore-scripts --registry https://registry.npmjs.org/
             echo "✅ Published $LOCAL_VERSION to @latest"
 
           elif [ "$STATUS" == "EQUAL" ]; then
@@ -83,7 +88,7 @@ jobs:
             DEV_VERSION="${LOCAL_VERSION}-dev.${TIMESTAMP}"
 
             npm version $DEV_VERSION --no-git-tag-version --ignore-scripts
-            npm publish --tag dev --provenance --access public --ignore-scripts
+            npm publish --tag dev --provenance --access public --ignore-scripts --registry https://registry.npmjs.org/
             echo "✅ Published $DEV_VERSION to @dev"
 
           else

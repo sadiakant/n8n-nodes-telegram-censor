@@ -1,6 +1,9 @@
 import { IExecuteFunctions, INodeExecutionData, INodeType, INodeTypeDescription, NodeOperationError } from 'n8n-workflow';
+import { lookup } from 'dns/promises';
+import { isIP } from 'net';
+import { Readable } from 'stream';
 import { TelegramClient } from 'telegram';
-import { LogLevel } from 'telegram/extensions/Logger';
+import { LogLevel, Logger } from 'telegram/extensions/Logger';
 import { StringSession } from 'telegram/sessions';
 import { CustomFile } from 'telegram/client/uploads';
 import { detectNudity, blurNudity, releaseModel } from '../../inference';
@@ -24,6 +27,7 @@ export class TelegramCensor implements INodeType {
         type: 'options',
         options: [
           { name: 'Get Messages',  value: 'getMessages',     description: 'Get recent messages with optional time/date filter' },
+          { name: 'Send Message',  value: 'sendMessage',     description: 'Send a text message with optional media attachment' },
           { name: 'Download Media',value: 'downloadMedia',   description: 'Download photo/document from message' },
           { name: 'Scanner',       value: 'nudeNetScanner',  description: 'Detect exposed nudity using NudeNet (100% local)' },
           { name: 'Blur',          value: 'nudeNetBlur',     description: 'Blur only exposed private parts (NudeNet)' },
@@ -62,6 +66,7 @@ export class TelegramCensor implements INodeType {
         name: 'limit',
         type: 'number',
         default: 50,
+        typeOptions: { minValue: 1 },
         displayOptions: { show: { operation: ['getMessages'], mode: ['limit'] } },
       },
       {
@@ -69,6 +74,7 @@ export class TelegramCensor implements INodeType {
         name: 'hours',
         type: 'number',
         default: 24,
+        typeOptions: { minValue: 1 },
         displayOptions: { show: { operation: ['getMessages'], mode: ['hours'] } },
       },
       {
@@ -76,6 +82,7 @@ export class TelegramCensor implements INodeType {
         name: 'maxMessages',
         type: 'number',
         default: 500,
+        typeOptions: { minValue: 1 },
         displayOptions: { show: { operation: ['getMessages'], mode: ['hours', 'range'] } },
         description: 'Safety cap for very active chats',
       },
@@ -115,6 +122,91 @@ export class TelegramCensor implements INodeType {
         description: 'Filter by specific media types. Leave empty to allow all media.',
       },
 
+      // ─── Send Message ───────────────────────────────────────────────────────
+      {
+        displayName: 'Send to Saved Messages',
+        name: 'sendToSelf',
+        type: 'boolean',
+        default: false,
+        displayOptions: { show: { operation: ['sendMessage'] } },
+        description: 'If enabled, message is sent to your Saved Messages (me) and the chat field is hidden',
+      },
+      {
+        displayName: 'Chat ID',
+        name: 'sendChatId',
+        type: 'string',
+        default: '',
+        required: true,
+        displayOptions: {
+          show: { operation: ['sendMessage'] },
+          hide: { sendToSelf: [true] },
+        },
+        description: 'Username (@channel), invite link, or numeric ID',
+      },
+      {
+        displayName: 'Message Text',
+        name: 'sendText',
+        type: 'string',
+        default: '',
+        displayOptions: { show: { operation: ['sendMessage'] } },
+      },
+      {
+        displayName: 'Reply to Message (ID)',
+        name: 'sendReplyTo',
+        type: 'number',
+        default: 0,
+        typeOptions: { minValue: 0 },
+        displayOptions: { show: { operation: ['sendMessage'] } },
+        description: 'The ID of the message to reply to',
+      },
+      {
+        displayName: 'Show Web Preview',
+        name: 'sendWebPreview',
+        type: 'boolean',
+        default: true,
+        displayOptions: { show: { operation: ['sendMessage'] } },
+        description: 'Enable link previews when the message contains URLs',
+      },
+      {
+        displayName: 'Attach Media',
+        name: 'sendAttachMedia',
+        type: 'boolean',
+        default: false,
+        displayOptions: { show: { operation: ['sendMessage'] } },
+        description: 'Upload a photo, video, or document with the message',
+      },
+      {
+        displayName: 'Media Type',
+        name: 'sendMediaType',
+        type: 'options',
+        options: [
+          { name: 'Auto Detect', value: 'auto', description: 'Infer from MIME type or URL extension' },
+          { name: 'Photo',    value: 'photo'    },
+          { name: 'Video',    value: 'video'    },
+          { name: 'Document', value: 'document' },
+        ],
+        default: 'auto',
+        displayOptions: { show: { operation: ['sendMessage'], sendAttachMedia: [true] } },
+        description: 'Select the kind of media you are attaching',
+      },
+      {
+        displayName: 'Binary Property',
+        name: 'sendMediaBinaryProperty',
+        type: 'string',
+        default: 'data',
+        displayOptions: { show: { operation: ['sendMessage'], sendAttachMedia: [true] } },
+        description: 'Name of the binary property that contains the file to upload',
+      },
+      {
+        displayName: 'Media URL',
+        name: 'sendMediaUrl',
+        type: 'string',
+        default: '',
+        displayOptions: { show: { operation: ['sendMessage'], sendAttachMedia: [true] } },
+        placeholder: 'https://example.com/file.jpg',
+        description: 'Optional direct URL. Used when binary data is not provided. Only public http/https URLs are allowed.',
+      },
+
       // ─── Download Media ───────────────────────────────────────────────────────
       {
         displayName: 'Chat ID',
@@ -129,6 +221,7 @@ export class TelegramCensor implements INodeType {
         name: 'downloadMessageId',
         type: 'number',
         default: 0,
+        typeOptions: { minValue: 1 },
         required: true,
         displayOptions: { show: { operation: ['downloadMedia'] } },
       },
@@ -147,6 +240,7 @@ export class TelegramCensor implements INodeType {
         name: 'editMessageId',
         type: 'number',
         default: 0,
+        typeOptions: { minValue: 1 },
         required: true,
         displayOptions: { show: { operation: ['editMessage'] } },
       },
@@ -191,9 +285,24 @@ export class TelegramCensor implements INodeType {
       new StringSession(credentials.sessionString as string),
       Number(credentials.apiId),
       credentials.apiHash as string,
-      { connectionRetries: 5, useWSS: false },
+      {
+        connectionRetries: 5,
+        useWSS: false,
+        // Suppress constructor-time GramJS INFO logs (e.g., "Running gramJS version ...").
+        baseLogger: new Logger(LogLevel.NONE),
+      },
     );
-    client.setLogLevel(LogLevel.ERROR);
+
+    const requestedGramJsLogLevel = (process.env.TELEGRAM_CENSOR_GRAMJS_LOG_LEVEL || '').toLowerCase();
+    const resolvedGramJsLogLevel =
+      requestedGramJsLogLevel === 'debug' ? LogLevel.DEBUG :
+      requestedGramJsLogLevel === 'info' ? LogLevel.INFO :
+      requestedGramJsLogLevel === 'warn' || requestedGramJsLogLevel === 'warning' ? LogLevel.WARN :
+      requestedGramJsLogLevel === 'error' ? LogLevel.ERROR :
+      requestedGramJsLogLevel === 'none' ? LogLevel.NONE :
+      process.env.N8N_LOG_LEVEL === 'debug' ? LogLevel.WARN : LogLevel.NONE;
+
+    client.setLogLevel(resolvedGramJsLogLevel);
 
     let usedScannerOperation = false;
 
@@ -234,6 +343,19 @@ export class TelegramCensor implements INodeType {
       return n;
     };
 
+    const toFinitePositiveInt = (raw: string | undefined, fallback: number): number => {
+      const n = Number(raw);
+      return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
+    };
+
+    const parseDateToUnix = (raw: string, label: string): number => {
+      const millis = Date.parse(raw);
+      if (Number.isNaN(millis)) {
+        throw new Error(`Invalid ${label}: "${raw}"`);
+      }
+      return Math.floor(millis / 1000);
+    };
+
     const sleepMs = async (ms: number): Promise<void> =>
       await new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -252,8 +374,292 @@ export class TelegramCensor implements INodeType {
         normalized.includes('etimedout') ||
         normalized.includes('econnreset') ||
         normalized.includes('socket hang up') ||
-        normalized.includes('eai_again')
+        normalized.includes('eai_again') ||
+        normalized.includes('invalid new nonce hash') ||
+        normalized.includes('securityerror')
       );
+    };
+
+    const inferMediaTypeFromMime = (mime?: string): 'photo' | 'video' | 'document' | undefined => {
+      if (!mime) return undefined;
+      if (mime.startsWith('image/')) return 'photo';
+      if (mime.startsWith('video/')) return 'video';
+      return 'document';
+    };
+
+    const inferMediaTypeFromUrl = (url: string): 'photo' | 'video' | 'document' => {
+      const lower = url.toLowerCase();
+      if (lower.match(/\.jpg|\.jpeg|\.png|\.gif|\.webp|\.heic|\.heif/)) return 'photo';
+      if (lower.match(/\.mp4|\.mov|\.mkv|\.webm/)) return 'video';
+      return 'document';
+    };
+
+    const extractMediaInfo = (media: any): { hasMedia: boolean; mediaType: string } => {
+      if (!media) return { hasMedia: false, mediaType: 'other' };
+      if (media.photo || media.className === 'MessageMediaPhoto' || media._ === 'messageMediaPhoto') {
+        return { hasMedia: true, mediaType: 'photo' };
+      }
+
+      const isDocumentMedia = media.document || media.className === 'MessageMediaDocument' || media._ === 'messageMediaDocument';
+      if (isDocumentMedia) {
+        const mimeType = media.document?.mimeType || '';
+        if (mimeType.startsWith('video/')) return { hasMedia: true, mediaType: 'video' };
+        return { hasMedia: true, mediaType: 'document' };
+      }
+
+      if (media.video || media.className === 'MessageMediaVideo' || media._ === 'messageMediaVideo') {
+        return { hasMedia: true, mediaType: 'video' };
+      }
+
+      return { hasMedia: true, mediaType: 'other' };
+    };
+
+    const sanitizeFileName = (name: string): string =>
+      name.replace(/[\\/:*?"<>|]/g, '_').trim();
+
+    const getExtensionForMime = (mimeType?: string): string => {
+      switch (mimeType) {
+        case 'image/jpeg': return '.jpg';
+        case 'image/png': return '.png';
+        case 'image/webp': return '.webp';
+        case 'image/gif': return '.gif';
+        case 'video/mp4': return '.mp4';
+        case 'video/quicktime': return '.mov';
+        case 'video/x-matroska': return '.mkv';
+        case 'video/webm': return '.webm';
+        default: return '';
+      }
+    };
+
+    const getMediaMetadataFromMessage = (
+      message: any,
+      messageId: number,
+    ): { fileName: string; mimeType: string; mediaType: 'photo' | 'video' | 'document' } => {
+      if (message?.media?.photo) {
+        return {
+          fileName: `media_${messageId}.jpg`,
+          mimeType: 'image/jpeg',
+          mediaType: 'photo',
+        };
+      }
+
+      const doc = message?.media?.document;
+      const mimeType =
+        typeof doc?.mimeType === 'string' && doc.mimeType.trim() !== ''
+          ? doc.mimeType
+          : 'application/octet-stream';
+
+      const fileNameFromAttributes = Array.isArray(doc?.attributes)
+        ? doc.attributes.find((attr: any) => typeof attr?.fileName === 'string' && attr.fileName.trim() !== '')?.fileName as string | undefined
+        : undefined;
+
+      const baseName = sanitizeFileName(fileNameFromAttributes || `media_${messageId}`) || `media_${messageId}`;
+      const hasExtension = baseName.includes('.');
+      const fileName = hasExtension ? baseName : `${baseName}${getExtensionForMime(mimeType)}`;
+
+      return {
+        fileName,
+        mimeType,
+        mediaType: inferMediaTypeFromMime(mimeType) || 'document',
+      };
+    };
+
+    const mediaUrlAllowList = (process.env.TELEGRAM_CENSOR_MEDIA_URL_ALLOWLIST || '')
+      .split(',')
+      .map((host) => host.trim().toLowerCase())
+      .filter(Boolean);
+    const allowPrivateMediaUrls = process.env.TELEGRAM_CENSOR_ALLOW_PRIVATE_MEDIA_URLS === 'true';
+    const defaultDownloadTimeoutMs = 15_000;
+    const defaultDownloadMaxBytes = 25 * 1024 * 1024;
+
+    const isPrivateIpv4 = (ip: string): boolean => {
+      const parts = ip.split('.').map((part) => Number(part));
+      if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
+        return true;
+      }
+
+      const [a, b] = parts;
+      return (
+        a === 10 ||
+        a === 127 ||
+        (a === 169 && b === 254) ||
+        (a === 172 && b >= 16 && b <= 31) ||
+        (a === 192 && b === 168) ||
+        (a === 100 && b >= 64 && b <= 127) ||
+        a === 0
+      );
+    };
+
+    const isPrivateIpAddress = (address: string): boolean => {
+      const normalized = address.toLowerCase();
+      const family = isIP(normalized);
+      if (!family) return true;
+
+      if (family === 4) {
+        return isPrivateIpv4(normalized);
+      }
+
+      const mappedIpv4Prefix = '::ffff:';
+      if (normalized.startsWith(mappedIpv4Prefix)) {
+        return isPrivateIpv4(normalized.slice(mappedIpv4Prefix.length));
+      }
+
+      return (
+        normalized === '::1' ||
+        normalized === '::' ||
+        normalized.startsWith('fc') ||
+        normalized.startsWith('fd') ||
+        normalized.startsWith('fe80:')
+      );
+    };
+
+    const isHostAllowed = (hostName: string): boolean => {
+      if (mediaUrlAllowList.length === 0) return true;
+      const normalized = hostName.toLowerCase();
+      return mediaUrlAllowList.some(
+        (allowed) => normalized === allowed || normalized.endsWith(`.${allowed}`),
+      );
+    };
+
+    const assertHostIsSafe = async (hostName: string): Promise<void> => {
+      const normalizedHost = hostName.toLowerCase();
+
+      if (!isHostAllowed(normalizedHost)) {
+        throw new Error(`Media URL host "${normalizedHost}" is not in TELEGRAM_CENSOR_MEDIA_URL_ALLOWLIST.`);
+      }
+
+      if (allowPrivateMediaUrls) return;
+
+      if (normalizedHost === 'localhost' || normalizedHost.endsWith('.localhost')) {
+        throw new Error(`Blocked private Media URL host "${hostName}".`);
+      }
+
+      if (isIP(normalizedHost)) {
+        if (isPrivateIpAddress(normalizedHost)) {
+          throw new Error(`Blocked private Media URL IP "${hostName}".`);
+        }
+        return;
+      }
+
+      let addresses: Array<{ address: string }> = [];
+      try {
+        addresses = await lookup(normalizedHost, { all: true, verbatim: true });
+      } catch (error) {
+        throw new Error(`Failed to resolve Media URL host "${hostName}": ${error instanceof Error ? error.message : String(error)}`);
+      }
+
+      if (!addresses.length) {
+        throw new Error(`Failed to resolve Media URL host "${hostName}".`);
+      }
+
+      if (addresses.some(({ address }) => isPrivateIpAddress(address))) {
+        throw new Error(`Blocked Media URL host "${hostName}" because it resolves to a private or local IP.`);
+      }
+    };
+
+    const validateMediaUrl = async (rawUrl: string): Promise<URL> => {
+      let parsed: URL;
+      try {
+        parsed = new URL(rawUrl);
+      } catch {
+        throw new Error(`Invalid Media URL: "${rawUrl}".`);
+      }
+
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        throw new Error(`Unsupported Media URL protocol "${parsed.protocol}". Only http/https are allowed.`);
+      }
+
+      await assertHostIsSafe(parsed.hostname);
+      return parsed;
+    };
+
+    const downloadUrlToBuffer = async (url: string): Promise<{ buffer: Buffer; mimeType?: string; fileName?: string }> => {
+      const parsedUrl = await validateMediaUrl(url);
+      const timeoutMs = toFinitePositiveInt(process.env.TELEGRAM_CENSOR_MEDIA_URL_TIMEOUT_MS, defaultDownloadTimeoutMs);
+      const maxBytes = toFinitePositiveInt(process.env.TELEGRAM_CENSOR_MEDIA_URL_MAX_BYTES, defaultDownloadMaxBytes);
+
+      const controller = new AbortController();
+      const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs);
+
+      let response: Response;
+      try {
+        response = await fetch(parsedUrl.toString(), {
+          signal: controller.signal,
+          redirect: 'follow',
+        });
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw new Error(`Media URL download timed out after ${timeoutMs}ms.`);
+        }
+        throw new Error(`Failed to download media from URL: ${error instanceof Error ? error.message : String(error)}`);
+      } finally {
+        clearTimeout(timeoutHandle);
+      }
+
+      const finalUrl = await validateMediaUrl(response.url || parsedUrl.toString());
+
+      if (!response.ok) {
+        throw new Error(`Failed to download media from URL: ${response.status} ${response.statusText}`);
+      }
+
+      const contentLength = Number(response.headers.get('content-length'));
+      if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+        throw new Error(`Media URL file is too large (${contentLength} bytes). Max allowed is ${maxBytes} bytes.`);
+      }
+
+      if (!response.body) {
+        throw new Error('Media URL response body is empty.');
+      }
+
+      const chunks: Buffer[] = [];
+      let totalBytes = 0;
+      const stream = Readable.fromWeb(response.body as any);
+
+      for await (const chunk of stream) {
+        const asBuffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+        totalBytes += asBuffer.length;
+
+        if (totalBytes > maxBytes) {
+          throw new Error(`Media URL file exceeded max allowed size of ${maxBytes} bytes.`);
+        }
+
+        chunks.push(asBuffer);
+      }
+
+      if (totalBytes === 0) {
+        throw new Error('Media URL returned an empty file.');
+      }
+
+      const buffer = Buffer.concat(chunks, totalBytes);
+      const mimeType = response.headers.get('content-type') || undefined;
+      const disposition = response.headers.get('content-disposition');
+
+      let fileName: string | undefined;
+      if (disposition) {
+        const encodedMatch = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+        if (encodedMatch?.[1]) {
+          try {
+            fileName = decodeURIComponent(encodedMatch[1]);
+          } catch {
+            fileName = encodedMatch[1];
+          }
+        } else {
+          const plainMatch = disposition.match(/filename="?([^";]+)"?/i);
+          if (plainMatch?.[1]) {
+            fileName = plainMatch[1];
+          }
+        }
+      }
+
+      if (!fileName) {
+        fileName = finalUrl.pathname.split('/').filter(Boolean).pop();
+      }
+
+      if (fileName) {
+        fileName = sanitizeFileName(fileName);
+      }
+
+      return { buffer, mimeType, fileName };
     };
 
     try {
@@ -276,21 +682,25 @@ export class TelegramCensor implements INodeType {
             case 'getMessages': {
               const chatId      = this.getNodeParameter('chatId', i, '') as string;
               const mode        = this.getNodeParameter('mode', i, 'limit') as string;
-              const maxMessages = this.getNodeParameter('maxMessages', i, 500) as number;
+              const maxMessages = toInt(this.getNodeParameter('maxMessages', i, 500), 'Max Messages');
               const onlyMedia   = this.getNodeParameter('onlyMedia', i, false) as boolean;
               const mediaTypes  = this.getNodeParameter('mediaType', i, []) as string[];
 
+              if (!chatId.trim()) {
+                throw new Error('Chat ID is required.');
+              }
+
               const iterOptions: Record<string, any> = {};
-              if (maxMessages > 0) iterOptions.limit = maxMessages;
+              iterOptions.limit = maxMessages;
 
               let messages: any[] = [];
 
               if (mode === 'limit') {
-                const limit = this.getNodeParameter('limit', i, 50) as number;
+                const limit = toInt(this.getNodeParameter('limit', i, 50), 'Limit');
                 messages = await client.getMessages(chatId, { limit: limit as any });
 
               } else if (mode === 'hours') {
-                const hours      = this.getNodeParameter('hours', i, 24) as number;
+                const hours      = toInt(this.getNodeParameter('hours', i, 24), 'Last Hours');
                 const cutoffTime = Math.floor(Date.now() / 1000) - hours * 3600;
                 for await (const msg of client.iterMessages(chatId, iterOptions)) {
                   if (msg.date < cutoffTime) break;
@@ -300,8 +710,11 @@ export class TelegramCensor implements INodeType {
               } else if (mode === 'range') {
                 const fromDateStr = this.getNodeParameter('fromDate', i, '') as string;
                 const toDateStr   = this.getNodeParameter('toDate', i, '') as string;
-                const fromTime    = fromDateStr ? Math.floor(new Date(fromDateStr).getTime() / 1000) : 0;
-                const toTime      = toDateStr   ? Math.floor(new Date(toDateStr).getTime()   / 1000) : Math.floor(Date.now() / 1000);
+                const fromTime    = fromDateStr ? parseDateToUnix(fromDateStr, 'From Date') : 0;
+                const toTime      = toDateStr   ? parseDateToUnix(toDateStr, 'To Date') : Math.floor(Date.now() / 1000);
+                if (fromTime > toTime) {
+                  throw new Error('From Date must be earlier than or equal to To Date.');
+                }
                 for await (const msg of client.iterMessages(chatId, iterOptions)) {
                   if (msg.date > toTime) continue;
                   if (msg.date < fromTime) break;
@@ -343,14 +756,107 @@ export class TelegramCensor implements INodeType {
               break;
             }
 
+            // ── sendMessage ───────────────────────────────────────────────────
+            case 'sendMessage': {
+              const sendToSelf  = this.getNodeParameter('sendToSelf', i, false) as boolean;
+              const chatId      = sendToSelf ? 'me' : (this.getNodeParameter('sendChatId', i, '') as string);
+              const text        = this.getNodeParameter('sendText', i, '') as string;
+              const replyTo     = this.getNodeParameter('sendReplyTo', i, 0) as number;
+              const webPreview  = this.getNodeParameter('sendWebPreview', i, true) as boolean;
+              const attachMedia = this.getNodeParameter('sendAttachMedia', i, false) as boolean;
+
+              if (!sendToSelf && !chatId.trim()) {
+                throw new Error('Chat ID is required when "Send to Saved Messages" is disabled.');
+              }
+
+              let fileToSend: CustomFile | undefined;
+              let hasMedia = false;
+              let mediaType = 'other';
+
+              if (attachMedia) {
+                const selectedType  = this.getNodeParameter('sendMediaType', i, 'auto') as 'auto' | 'photo' | 'video' | 'document';
+                const binaryProperty= this.getNodeParameter('sendMediaBinaryProperty', i, 'data') as string;
+                const mediaUrl      = this.getNodeParameter('sendMediaUrl', i, '') as string;
+                const binaryData    = item.binary?.[binaryProperty];
+                const detectMediaType = selectedType === 'auto';
+
+                if (binaryData) {
+                  const buffer = await this.helpers.getBinaryDataBuffer(i, binaryProperty);
+                  const fileName = binaryData.fileName || `upload_${Date.now()}`;
+                  fileToSend = new CustomFile(fileName, buffer.length, '', buffer);
+                  hasMedia = true;
+                  mediaType = detectMediaType
+                    ? inferMediaTypeFromMime(binaryData.mimeType) || 'document'
+                    : selectedType;
+
+                } else if (mediaUrl.trim() !== '') {
+                  const { buffer, mimeType, fileName } = await downloadUrlToBuffer(mediaUrl);
+                  const safeName = fileName || `upload_${Date.now()}`;
+                  fileToSend = new CustomFile(safeName, buffer.length, '', buffer);
+                  hasMedia = true;
+                  mediaType = detectMediaType
+                    ? inferMediaTypeFromMime(mimeType) || inferMediaTypeFromUrl(mediaUrl) || 'document'
+                    : selectedType;
+
+                } else {
+                  throw new Error(`Binary property "${binaryProperty}" is missing or empty and no Media URL provided.`);
+                }
+              }
+
+              const sendResult = await client.sendMessage(chatId, {
+                message   : text,
+                replyTo   : replyTo > 0 ? replyTo : undefined,
+                linkPreview: webPreview,
+                file      : fileToSend,
+              });
+
+              const sentMessage = Array.isArray(sendResult) ? sendResult[0] : sendResult;
+              const messageMediaInfo = extractMediaInfo((sentMessage as any)?.media);
+              const finalHasMedia = hasMedia || messageMediaInfo.hasMedia;
+              const finalMediaType = hasMedia ? mediaType : messageMediaInfo.mediaType;
+
+              const sentDateRaw = (sentMessage as any)?.date;
+              const sentDateIso =
+                typeof sentDateRaw === 'number'
+                  ? new Date(sentDateRaw * 1000).toISOString()
+                  : sentDateRaw instanceof Date
+                    ? sentDateRaw.toISOString()
+                    : new Date().toISOString();
+
+              successData.push(
+                makeLightweightItem(
+                  item.json,
+                  {
+                    messageId : (sentMessage as any)?.id ?? null,
+                    chatId,
+                    date      : sentDateIso,
+                    text      : (sentMessage as any)?.message ?? text,
+                    hasMedia  : finalHasMedia,
+                    mediaType : finalHasMedia ? finalMediaType : 'other',
+                    status    : 'Success',
+                    action    : 'Message sent',
+                    isReply   : replyTo > 0 || !!(sentMessage as any)?.replyTo?.replyToMsgId,
+                    replyToId : (sentMessage as any)?.replyTo?.replyToMsgId ?? (replyTo > 0 ? replyTo : null),
+                  },
+                  i,
+                ),
+              );
+              break;
+            }
+
             // ── downloadMedia ──────────────────────────────────────────────────
             case 'downloadMedia': {
               const chatId    = this.getNodeParameter('downloadChatId', i, '') as string;
               const messageId = toInt(this.getNodeParameter('downloadMessageId', i, 0), 'Message ID');
 
+              if (!chatId.trim()) {
+                throw new Error('Chat ID is required.');
+              }
+
               const maxAttempts = 4;
               let attempt = 0;
               let buffer: Buffer | undefined;
+              let messageWithMedia: any;
 
               while (attempt < maxAttempts && !buffer) {
                 attempt += 1;
@@ -361,6 +867,7 @@ export class TelegramCensor implements INodeType {
                 if (!msg?.media) {
                   throw new Error(`No media found in message ID ${messageId}`);
                 }
+                messageWithMedia = msg;
 
                 try {
                   // Pass the full message object (not just media) so GramJS has complete context.
@@ -386,9 +893,10 @@ export class TelegramCensor implements INodeType {
                 throw new Error(`Failed to download media for message ID ${messageId} after ${maxAttempts} attempts.`);
               }
 
+              const mediaMeta = getMediaMetadataFromMessage(messageWithMedia, messageId);
               const binaryData = await this.helpers.prepareBinaryData(buffer as Buffer);
-              binaryData.fileName = `media_${messageId}.jpg`;
-              binaryData.mimeType = 'image/jpeg';
+              binaryData.fileName = mediaMeta.fileName;
+              binaryData.mimeType = mediaMeta.mimeType;
 
               // KEY FIX: downloadMedia MUST carry binary (needed by Scanner next).
               // But we strip all unnecessary fields from json to keep it lean.
@@ -400,7 +908,7 @@ export class TelegramCensor implements INodeType {
                   date      : item.json.date      ?? null,
                   text      : item.json.text      ?? null,
                   hasMedia  : item.json.hasMedia  ?? true,
-                  mediaType : item.json.mediaType ?? null,
+                  mediaType : item.json.mediaType ?? mediaMeta.mediaType,
                 },
                 binary: { media: binaryData },  // ← binary kept: Scanner needs it
                 pairedItem: { item: i },
@@ -417,6 +925,11 @@ export class TelegramCensor implements INodeType {
                 throw new Error('Missing binary data property "media". Connect a Download Media node first.');
               }
 
+              const inputMediaMime = item.binary?.media?.mimeType as string | undefined;
+              if (inputMediaMime && !inputMediaMime.startsWith('image/')) {
+                throw new Error(`Scanner supports only image inputs. Received mime type: "${inputMediaMime}".`);
+              }
+
               const buffer     = await this.helpers.getBinaryDataBuffer(i, 'media');
               const detections = await detectNudity(buffer, minConfidence);
               const isNsfw     = detections.length > 0;
@@ -425,8 +938,9 @@ export class TelegramCensor implements INodeType {
                 // KEY FIX: NSFW images carry binary ONLY when blur is needed next.
                 // Detections stored as lightweight data, not giant nested objects.
                 const binaryProperty = await this.helpers.prepareBinaryData(buffer);
-                binaryProperty.fileName = `original_${item.json.messageId}.jpg`;
-                binaryProperty.mimeType = 'image/jpeg';
+                const sourceExtension = getExtensionForMime(inputMediaMime) || '.jpg';
+                binaryProperty.fileName = `original_${item.json.messageId}${sourceExtension}`;
+                binaryProperty.mimeType = inputMediaMime || 'image/jpeg';
 
                 successData.push({
                   json: {
@@ -482,6 +996,7 @@ export class TelegramCensor implements INodeType {
               const buffer      = await this.helpers.getBinaryDataBuffer(i, 'media');
               const detections  = (item.json.detections || []) as any[];
               const blurStrength= this.getNodeParameter('blurStrength', i, 35) as number;
+              const sourceMimeType = item.binary?.media?.mimeType as string | undefined;
 
               let resultBuffer  = buffer;
               if (detections.length > 0) {
@@ -489,8 +1004,9 @@ export class TelegramCensor implements INodeType {
               }
 
               const binaryData = await this.helpers.prepareBinaryData(resultBuffer);
-              binaryData.fileName = `safe_${item.json.messageId}.jpg`;
-              binaryData.mimeType = 'image/jpeg';
+              const outputExtension = getExtensionForMime(sourceMimeType) || '.jpg';
+              binaryData.fileName = `safe_${item.json.messageId}${outputExtension}`;
+              binaryData.mimeType = sourceMimeType || 'image/jpeg';
 
               // KEY FIX: Blur output carries binary ONLY because editMessage needs it.
               // But we strip detections array (no longer needed after blur).
@@ -520,6 +1036,10 @@ export class TelegramCensor implements INodeType {
               const messageId = toInt(this.getNodeParameter('editMessageId', i, 0), 'Message ID');
               const text      = this.getNodeParameter('editText', i, '') as string;
 
+              if (!chatId.trim()) {
+                throw new Error('Chat ID is required.');
+              }
+
               if (!this.helpers.assertBinaryData(i, 'media')) {
                 throw new Error('Missing binary data property "media". Connect a Blur node first.');
               }
@@ -537,13 +1057,17 @@ export class TelegramCensor implements INodeType {
               // KEY FIX: editMessage is the FINAL step in the chain.
               // Output is 100% lightweight JSON - binary fully dropped here.
               // This item goes back into the loop and must NOT carry any image data.
+              const wasBlurred =
+                item.json.blurred === true ||
+                Number(item.json.detectionCount ?? 0) > 0;
+
               successData.push(
                 makeLightweightItem(
                   item.json,
                   {
                     status : 'Success',
                     action : 'Media replaced with safe version',
-                    blurred: true,
+                    blurred: wasBlurred,
                   },
                   i,
                 ),

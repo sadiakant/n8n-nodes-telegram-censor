@@ -3,6 +3,23 @@ import sharp from 'sharp';
 import * as path from 'path';
 import * as fs from 'fs';
 
+type OrtLogLevel = Exclude<ort.Env['logLevel'], undefined>;
+const ORT_LOG_LEVELS: OrtLogLevel[] = ['verbose', 'info', 'warning', 'error', 'fatal'];
+
+const isDebugMode = process.env.N8N_LOG_LEVEL === 'debug';
+
+// Keep ORT quiet in normal mode to avoid benign startup warnings in n8n logs.
+if (!process.env.ORT_LOG_SEVERITY_LEVEL) {
+  process.env.ORT_LOG_SEVERITY_LEVEL = isDebugMode ? '2' : '3';
+}
+
+const requestedOrtLogLevel = process.env.TELEGRAM_CENSOR_ORT_LOG_LEVEL;
+if (requestedOrtLogLevel && ORT_LOG_LEVELS.includes(requestedOrtLogLevel as OrtLogLevel)) {
+  ort.env.logLevel = requestedOrtLogLevel as OrtLogLevel;
+} else {
+  ort.env.logLevel = isDebugMode ? 'warning' : 'error';
+}
+
 // --- OPTIMIZATION #1: Disable Sharp Cache ---
 // Sharp keeps decompressed images in memory by default.
 // We must disable this for low-RAM environments.
@@ -39,10 +56,10 @@ const LABELS = [
   "BUTTOCKS_COVERED"
 ];
 
-const UNSAFE_CLASSES = [
+const UNSAFE_CLASSES = new Set([
   'FEMALE_GENITALIA_EXPOSED', 'MALE_GENITALIA_EXPOSED', 'BUTTOCKS_EXPOSED',
-  'FEMALE_BREAST_EXPOSED', "MALE_BREAST_EXPOSED", 'ANUS_EXPOSED'
-];
+  'FEMALE_BREAST_EXPOSED', 'MALE_BREAST_EXPOSED', 'ANUS_EXPOSED',
+]);
 
 const DEFAULT_MIN_CONFIDENCE = 0.4;
 const CHW_SIZE = INPUT_SIZE * INPUT_SIZE * 3;
@@ -152,16 +169,24 @@ export async function detectNudity(buffer: Buffer, minConfidence = DEFAULT_MIN_C
     chwData[i + pixelCount * 2] = resizedBuffer[srcIdx + 2] / 255.0; // B
   }
 
-  // 4. Inference
-  const tensor = new ort.Tensor('float32', chwData, [1, 3, INPUT_SIZE, INPUT_SIZE]);
+  let output: ort.Tensor | undefined;
+  try {
+    // 4. Inference
+    const tensor = new ort.Tensor('float32', chwData, [1, 3, INPUT_SIZE, INPUT_SIZE]);
 
-  // Run inference
-  const feeds: Record<string, ort.Tensor> = {};
-  feeds[inferenceSession.inputNames[0]] = tensor;
+    // Run inference
+    const feeds: Record<string, ort.Tensor> = {};
+    feeds[inferenceSession.inputNames[0]] = tensor;
 
-  const results = await inferenceSession.run(feeds);
-  const output = results[inferenceSession.outputNames[0]];
-  releaseChwBuffer(chwData);
+    const results = await inferenceSession.run(feeds);
+    output = results[inferenceSession.outputNames[0]];
+  } finally {
+    releaseChwBuffer(chwData);
+  }
+
+  if (!output) {
+    throw new Error('Model output tensor missing.');
+  }
 
   // 5. Cleanup Tensor immediately
   // (Let JS GC handle 'tensor' and 'chwData' as they go out of scope)
@@ -198,7 +223,7 @@ export async function detectNudity(buffer: Buffer, minConfidence = DEFAULT_MIN_C
 
     const label = LABELS[maxClassIdx];
 
-    if (UNSAFE_CLASSES.includes(label)) {
+    if (UNSAFE_CLASSES.has(label)) {
        boxes.push({
          x1: cx - w / 2,
          y1: cy - h / 2,

@@ -103,6 +103,7 @@ Detect nudity using local AI (NudeNet) with confidence scoring for policy compli
 
 **Parameters**:
 - **Minimum Confidence**: Only detect parts with confidence above this threshold (0.0-1.0)
+- **Input Requirement**: Scanner accepts image media only (`image/*` MIME types)
 
 **Example**:
 ```json
@@ -288,12 +289,7 @@ Replace media in existing messages with blurred/safe versions.
 ### **Scanner Settings**
 ```json
 {
-  "minConfidence": 0.4,    // 0.0 - 1.0 (lower = more sensitive)
-  "detectClasses": [        // Optional: filter specific classes
-    "FEMALE_GENITALIA_EXPOSED",
-    "MALE_GENITALIA_EXPOSED",
-    "FEMALE_BREAST_EXPOSED"
-  ]
+  "minConfidence": 0.4 // 0.0 - 1.0 (lower = more sensitive)
 }
 ```
 
@@ -306,8 +302,7 @@ Replace media in existing messages with blurred/safe versions.
 ### **Blur Settings**
 ```json
 {
-  "blurStrength": 35,      // 0 - 100 (higher = more blur)
-  "brightness": 0.9        // Dim blurred regions slightly
+  "blurStrength": 35 // 1 - 100 (higher = more blur)
 }
 ```
 

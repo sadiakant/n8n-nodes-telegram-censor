@@ -238,17 +238,7 @@ This comprehensive troubleshooting guide helps you diagnose and resolve common i
    }
    ```
 
-2. **Filter Detection Classes**
-   ```json
-   {
-     "detectClasses": [
-       "FEMALE_GENITALIA_EXPOSED",
-       "MALE_GENITALIA_EXPOSED"
-     ]
-   }
-   ```
-
-3. **Image Quality Check**
+2. **Image Quality Check**
    - Ensure images are clear and well-lit
    - Avoid images with shadows or poor contrast
    - Test with different image sources

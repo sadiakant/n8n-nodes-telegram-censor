@@ -278,13 +278,7 @@ Telegram Censor is optimized for low-memory environments:
 
 ```json
 {
-	"minConfidence": 0.4, // 0.0 - 1.0 (lower = more sensitive)
-	"detectClasses": [
-		// Optional: filter specific classes
-		"FEMALE_GENITALIA_EXPOSED",
-		"MALE_GENITALIA_EXPOSED",
-		"FEMALE_BREAST_EXPOSED"
-	]
+	"minConfidence": 0.4 // 0.0 - 1.0 (lower = more sensitive)
 }
 ```
 
@@ -292,8 +286,7 @@ Telegram Censor is optimized for low-memory environments:
 
 ```json
 {
-	"blurStrength": 35, // 0 - 100 (higher = more blur)
-	"brightness": 0.9 // Dim blurred regions slightly
+	"blurStrength": 35 // 1 - 100 (higher = more blur)
 }
 ```
 

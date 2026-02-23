@@ -187,15 +187,48 @@ Replace media in existing messages with blurred/safe versions.
 **Parameters**:
 - **Chat ID**: Target chat ID, username (@channel), or invite link
 - **Message ID**: ID of message containing media to replace
-- **Text (Caption)**: Optional text to update the message caption
+- **Text / Caption**: Updates message text for text messages, or caption for media messages
+- **Media URL**: Optional replacement media URL
+- **Zero Media**: If enabled and Media URL is empty, remove media from the message
+- **Input Binary (Automatic)**: If no Media URL and Zero Media is off, Replace uses incoming binary automatically (prefers `media`, otherwise first binary field)
 
-**Example**:
+**Priority Order**:
+1. If `Media URL` is provided → replace media from URL
+2. Else if `Zero Media = true` → remove media
+3. Else if input binary exists → replace media from input binary
+4. Else → update text/caption only
+
+**Example A: Replace using blurred output**:
 ```json
 {
   "operation": "editMessage",
   "chatId": "@channel_name",
   "messageId": 12345,
-  "text": "Here's the updated safe version"
+  "text": "Here's the updated safe version",
+  "editZeroMedia": false
+}
+```
+
+**Example B: Replace using direct URL**:
+```json
+{
+  "operation": "editMessage",
+  "chatId": "@channel_name",
+  "messageId": 12345,
+  "text": "Replaced from trusted URL",
+  "editMediaUrl": "https://cdn.example.com/safe-image.jpg",
+  "editZeroMedia": false
+}
+```
+
+**Example C: Hard delete media (Zero Media)**:
+```json
+{
+  "operation": "editMessage",
+  "chatId": "@channel_name",
+  "messageId": 12345,
+  "text": "Media removed by moderation policy",
+  "editZeroMedia": true
 }
 ```
 
@@ -215,6 +248,9 @@ Replace media in existing messages with blurred/safe versions.
   "timestamp": "2024-01-15T10:30:00.000Z"
 }
 ```
+
+**Note**:
+- Zero-media edit can fail due to Telegram permissions or message constraints. The node retries and then returns an error if deletion is not allowed.
 
 ---
 

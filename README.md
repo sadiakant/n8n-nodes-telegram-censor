@@ -5,20 +5,44 @@
 [![Build Status](https://github.com/sadiakant/n8n-nodes-telegram-censor/actions/workflows/build.yml/badge.svg)](https://github.com/sadiakant/n8n-nodes-telegram-censor/actions/workflows/build.yml)
 [![Publish Status](https://github.com/sadiakant/n8n-nodes-telegram-censor/actions/workflows/publish.yml/badge.svg)](https://github.com/sadiakant/n8n-nodes-telegram-censor/actions/workflows/publish.yml)
 [![Socket Badge](https://badge.socket.dev/npm/package/n8n-nodes-telegram-censor)](https://badge.socket.dev/npm/package/n8n-nodes-telegram-censor)
+[![GitHub Issues](https://img.shields.io/github/issues/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/issues)
+[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/pulls)
 
 [![npm version](https://badgen.net/npm/v/n8n-nodes-telegram-censor)](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
-[![npm downloads](https://badgen.net/npm/dm/n8n-nodes-telegram-censor)](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
+[![npm downloads/week](https://img.shields.io/npm/dw/n8n-nodes-telegram-censor?logo=npm&logoColor=white)](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
+[![npm downloads/month](https://img.shields.io/npm/dm/n8n-nodes-telegram-censor?logo=npm&logoColor=white)](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
+[![npm downloads/year](https://img.shields.io/npm/dy/n8n-nodes-telegram-censor?logo=npm&logoColor=white)](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
 [![node version](https://badgen.net/npm/node/n8n-nodes-telegram-censor)](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
 [![npm license](https://badgen.net/npm/license/n8n-nodes-telegram-censor)](LICENSE)
+[![GitHub license](https://badgen.net/github/license/sadiakant/n8n-nodes-telegram-censor)](LICENSE)
+[![npm total downloads](https://img.shields.io/npm/dt/n8n-nodes-telegram-censor?logo=npm&logoColor=white)](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
+[![npm unpacked size](https://img.shields.io/npm/unpacked-size/n8n-nodes-telegram-censor)](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
+[![npm types](https://img.shields.io/npm/types/n8n-nodes-telegram-censor)](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
+[![npm collaborators](https://img.shields.io/npm/collaborators/n8n-nodes-telegram-censor)](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
 
-[![github release](https://badgen.net/github/release/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/releases)
 [![github stars](https://badgen.net/github/stars/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/stargazers)
 [![github forks](https://badgen.net/github/forks/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/network/members)
 [![last commit](https://badgen.net/github/last-commit/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/commits/main)
+[![GitHub contributors](https://img.shields.io/github/contributors/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/graphs/contributors)
+[![GitHub watchers](https://img.shields.io/github/watchers/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/watchers)
+[![GitHub issues closed](https://img.shields.io/github/issues-closed/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/issues)
+[![GitHub PRs closed](https://img.shields.io/github/issues-pr-closed/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/pulls)
+[![Commit activity](https://img.shields.io/github/commit-activity/m/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/commits/main)
+[![Repo size](https://img.shields.io/github/repo-size/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor)
+[![Code size](https://img.shields.io/github/languages/code-size/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor)
+[![Top language](https://img.shields.io/github/languages/top/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor)
+
+[![telegram dependency](https://img.shields.io/npm/dependency-version/n8n-nodes-telegram-censor/telegram)](https://www.npmjs.com/package/telegram)
+[![sharp dependency](https://img.shields.io/npm/dependency-version/n8n-nodes-telegram-censor/sharp)](https://www.npmjs.com/package/sharp)
+[![onnxruntime-web dependency](https://img.shields.io/npm/dependency-version/n8n-nodes-telegram-censor/onnxruntime-web)](https://www.npmjs.com/package/onnxruntime-web)
+[![n8n-workflow peer dependency](https://img.shields.io/npm/dependency-version/n8n-nodes-telegram-censor/peer/n8n-workflow)](https://www.npmjs.com/package/n8n-workflow)
 
 [![Telegram API](https://badgen.net/static/Telegram/API/229ED9)](https://core.telegram.org/api)
 [![TypeScript](https://badgen.net/static/TypeScript/5.x/3178C6)](https://www.typescriptlang.org/)
 [![n8n](https://badgen.net/static/n8n/Community%20Node/EA4B71)](https://n8n.io/)
+[![pnpm >= 9.1](https://img.shields.io/badge/pnpm-%3E%3D9.1-F69220?style=flat-square&logo=pnpm&logoColor=white)](https://pnpm.io/)
+[![Node >= 18.17](https://img.shields.io/badge/node-%3E%3D18.17-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![AI: Local Only](https://img.shields.io/badge/AI-Local%20Only-00A86B?style=flat-square&logo=onnx&logoColor=white)](https://onnxruntime.ai/)
 
 ---
 
@@ -289,6 +313,23 @@ Telegram Censor is optimized for low-memory environments:
 	"blurStrength": 35 // 1 - 100 (higher = more blur)
 }
 ```
+
+### Replace Image Settings:
+
+```json
+{
+	"editMediaUrl": "", // If set, replace media from URL
+	"editZeroMedia": false, // true = remove media from message
+	"editText": "Updated text or caption"
+}
+```
+
+Replace behavior priority:
+
+1. If `editMediaUrl` is provided -> replace media from URL
+2. Else if `editZeroMedia = true` -> remove media (retries on Telegram API rejection)
+3. Else -> replace using input binary (prefers `media`, otherwise first available binary field)
+4. If none of the above are available -> update text/caption only
 
 ---
 

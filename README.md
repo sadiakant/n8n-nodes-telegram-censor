@@ -1,3 +1,5 @@
+![Telegram Censor Banner](https://repository-images.githubusercontent.com/1151456745/441baf7d-e54c-4988-9e94-944c2c927942)
+
 # 🔒 Telegram Censor - n8n Content Moderation Node
 
 **Protect Your Telegram Channel or Group from Ban - AI-Powered Nudity Detection & Blur for n8n Workflows**

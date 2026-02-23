@@ -1,4 +1,4 @@
-![Telegram Censor Banner](https://repository-images.githubusercontent.com/1151456745/441baf7d-e54c-4988-9e94-944c2c927942)
+![Telegram Censor Banner](https://raw.githubusercontent.com/sadiakant/n8n-nodes-telegram-censor/refs/heads/main/docs/n8n-nodes-telegram-censor.jpg)
 
 # 🔒 Telegram Censor - n8n Content Moderation Node
 

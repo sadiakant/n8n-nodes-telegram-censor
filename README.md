@@ -1,50 +1,14 @@
-![Telegram Censor Banner](https://raw.githubusercontent.com/sadiakant/n8n-nodes-telegram-censor/refs/heads/main/docs/n8n-nodes-telegram-censor.jpg)
+![Telegram Censor Banner](/docs/assets/n8n-nodes-telegram-censor.webp)
 
 # 🔒 Telegram Censor - n8n Content Moderation Node
 
 **Protect Your Telegram Channel or Group from Ban - AI-Powered Nudity Detection & Blur for n8n Workflows**
 
-[![Build Status](https://github.com/sadiakant/n8n-nodes-telegram-censor/actions/workflows/build.yml/badge.svg)](https://github.com/sadiakant/n8n-nodes-telegram-censor/actions/workflows/build.yml)
-[![Publish Status](https://github.com/sadiakant/n8n-nodes-telegram-censor/actions/workflows/publish.yml/badge.svg)](https://github.com/sadiakant/n8n-nodes-telegram-censor/actions/workflows/publish.yml)
-[![Socket Badge](https://badge.socket.dev/npm/package/n8n-nodes-telegram-censor)](https://badge.socket.dev/npm/package/n8n-nodes-telegram-censor)
-[![GitHub Issues](https://img.shields.io/github/issues/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/issues)
-[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/pulls)
-
-[![npm version](https://badgen.net/npm/v/n8n-nodes-telegram-censor)](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
-[![npm downloads/week](https://img.shields.io/npm/dw/n8n-nodes-telegram-censor?logo=npm&logoColor=white)](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
-[![npm downloads/month](https://img.shields.io/npm/dm/n8n-nodes-telegram-censor?logo=npm&logoColor=white)](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
-[![npm downloads/year](https://img.shields.io/npm/dy/n8n-nodes-telegram-censor?logo=npm&logoColor=white)](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
-[![node version](https://badgen.net/npm/node/n8n-nodes-telegram-censor)](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
-[![npm license](https://badgen.net/npm/license/n8n-nodes-telegram-censor)](LICENSE)
-[![GitHub license](https://badgen.net/github/license/sadiakant/n8n-nodes-telegram-censor)](LICENSE)
-[![npm total downloads](https://img.shields.io/npm/dt/n8n-nodes-telegram-censor?logo=npm&logoColor=white)](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
-[![npm unpacked size](https://img.shields.io/npm/unpacked-size/n8n-nodes-telegram-censor)](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
-[![npm types](https://img.shields.io/npm/types/n8n-nodes-telegram-censor)](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
-[![npm collaborators](https://img.shields.io/npm/collaborators/n8n-nodes-telegram-censor)](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
-
-[![github stars](https://badgen.net/github/stars/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/stargazers)
-[![github forks](https://badgen.net/github/forks/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/network/members)
-[![last commit](https://badgen.net/github/last-commit/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/commits/main)
-[![GitHub contributors](https://img.shields.io/github/contributors/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/graphs/contributors)
-[![GitHub watchers](https://img.shields.io/github/watchers/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/watchers)
-[![GitHub issues closed](https://img.shields.io/github/issues-closed/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/issues)
-[![GitHub PRs closed](https://img.shields.io/github/issues-pr-closed/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/pulls)
-[![Commit activity](https://img.shields.io/github/commit-activity/m/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/commits/main)
-[![Repo size](https://img.shields.io/github/repo-size/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor)
-[![Code size](https://img.shields.io/github/languages/code-size/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor)
-[![Top language](https://img.shields.io/github/languages/top/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor)
-
-[![telegram dependency](https://img.shields.io/npm/dependency-version/n8n-nodes-telegram-censor/telegram)](https://www.npmjs.com/package/telegram)
-[![sharp dependency](https://img.shields.io/npm/dependency-version/n8n-nodes-telegram-censor/sharp)](https://www.npmjs.com/package/sharp)
-[![onnxruntime-web dependency](https://img.shields.io/npm/dependency-version/n8n-nodes-telegram-censor/onnxruntime-web)](https://www.npmjs.com/package/onnxruntime-web)
-[![n8n-workflow peer dependency](https://img.shields.io/npm/dependency-version/n8n-nodes-telegram-censor/peer/n8n-workflow)](https://www.npmjs.com/package/n8n-workflow)
-
-[![Telegram API](https://badgen.net/static/Telegram/API/229ED9)](https://core.telegram.org/api)
-[![TypeScript](https://badgen.net/static/TypeScript/5.x/3178C6)](https://www.typescriptlang.org/)
-[![n8n](https://badgen.net/static/n8n/Community%20Node/EA4B71)](https://n8n.io/)
-[![pnpm >= 9.1](https://img.shields.io/badge/pnpm-%3E%3D9.1-F69220?style=flat-square&logo=pnpm&logoColor=white)](https://pnpm.io/)
-[![Node >= 18.17](https://img.shields.io/badge/node-%3E%3D18.17-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
-[![AI: Local Only](https://img.shields.io/badge/AI-Local%20Only-00A86B?style=flat-square&logo=onnx&logoColor=white)](https://onnxruntime.ai/)
+<p align="center"> 
+  <a href="https://t.me/n8n_nodes_0">
+    <img src="./docs/assets/n8n_nodes_0.webp" alt="n8n_nodes_0" width="150" />
+  </a>
+</p>
 
 ---
 
@@ -150,6 +114,8 @@ npm run build
 # Restart n8n
 ```
 
+For local development and package builds, this project now uses `npm` with `@n8n/node-cli` and a root-level `credentials/`, `models/`, and `nodes/` source layout.
+
 ---
 
 ## ⚙️ Quick Setup
@@ -164,7 +130,7 @@ npm run build
 
 **💡 Pro Tip**: Use our [Telegram GramPro](https://github.com/sadiakant/n8n-nodes-telegram-grampro) node to easily generate session strings!
 
-Follow our [Authorization Guide](docs/AUTHORIZATION_GUIDE.md) for detailed instructions on generating your session string.
+Follow our [Authorization Guide](https://github.com/sadiakant/n8n-nodes-telegram-grampro/blob/main/docs/AUTHORIZATION_GUIDE.md) for detailed instructions on generating your session string.
 
 ### 3. Configure Credentials
 
@@ -181,10 +147,12 @@ In n8n → Settings → Credentials:
 | Operation             | Description                                 | Use Case                           |
 | --------------------- | ------------------------------------------- | ---------------------------------- |
 | **📥 Get Messages**   | Fetch messages with time/date/media filters | Scan recent posts for compliance   |
-| **💾 Download Media** | Download photos from messages               | Extract images for analysis        |
+| **💾 Download Media** | Download photos, videos, or documents       | Extract media for analysis         |
 | **🔍 Scanner**        | AI nudity detection with confidence scoring | Identify policy-violating content  |
 | **🎨 Blur**           | Apply blur to detected regions              | Make content safe for Telegram     |
 | **🔄 Replace Image**  | Replace media in existing messages          | Update posts with blurred versions |
+| **📝 Replace Text**   | Update text or captions without new media   | Fix copy while keeping media       |
+| **✉️ Send Message**   | Send formatted messages with optional media | Alerts, reports, and safe reposts  |
 
 ---
 
@@ -362,7 +330,7 @@ For common issues and solutions, see our [Troubleshooting Guide](docs/TROUBLESHO
 
 | Issue               | Solution                           |
 | ------------------- | ---------------------------------- |
-| "Model not found"   | Run `npm run build` to copy assets |
+| "Model not found"   | Run `npm run build` to compile the node and copy the ONNX model |
 | "Out of memory"     | Enable debug logs to monitor usage |
 | "Connection failed" | Check session string validity      |
 | "Blur too weak"     | Increase blurStrength parameter    |
@@ -395,8 +363,9 @@ Memory logs will show:
 ## 📖 Documentation
 
 - **[Operations Guide](/docs/OPERATIONS_GUIDE.md)** - Detailed operation documentation
-- **[Authorization Guide](/docs/AUTHORIZATION_GUIDE.md)** - Setup Telegram credentials
+- **[Authorization Guide](https://github.com/sadiakant/n8n-nodes-telegram-grampro/blob/main/docs/AUTHORIZATION_GUIDE.md)** - Setup Telegram credentials
 - **[Troubleshooting Guide](/docs/TROUBLESHOOTING_GUIDE.md)** - Common issues and fixes
+- **[Changelog](/docs/CHANGELOG.md)** - Release notes and upgrade-impact summary
 - **[Contributing Guide](.github/CONTRIBUTING.md)** - How to contribute
 
 ---
@@ -417,25 +386,44 @@ npm install
 # Build project
 npm run build
 
-# Test changes
+# Start local n8n node development
 npm run dev
+
+# Lint and package verification
+npm run lint
+npm test
 ```
+
+Useful project scripts:
+
+- `npm run build` - runs `n8n-node build` and copies the NudeNet model into `dist/models`
+- `npm run build:watch` - TypeScript watch mode for local iteration
+- `npm run lint:fix` - fixes lint issues with the n8n node CLI
+- `npm run release` - release flow powered by `n8n-node release`
 
 ---
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+[MIT License](LICENSE) - see license file for details.
 
 ---
 
 ## 🔗 Resources
 
 - [Telegram API Documentation](https://core.telegram.org/api)
-- [GramJS Documentation](https://gram.js.org/)
+- [TeleProto Documentation](https://github.com/teleproto/teleproto)
 - [n8n Custom Nodes Guide](https://docs.n8n.io/integrations/creating-nodes/)
 - [NudeNet GitHub](https://github.com/notAI-tech/NudeNet)
 - [ONNX Runtime](https://onnxruntime.ai/)
+
+---
+
+## 💬 Support
+
+- **GitHub Issues**: [Report bugs or request features](https://github.com/sadiakant/n8n-nodes-telegram-censor/issues)
+- **Email**: krushnakantsadiya@gmail.com
+- **NPM Package**: [n8n-nodes-telegram-censor](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
 
 ---
 
@@ -450,30 +438,55 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ---
 
-## 💬 Support
+## **Publishing Status**
 
-- **GitHub Issues**: [Report bugs or request features](https://github.com/sadiakant/n8n-nodes-telegram-censor/issues)
-- **Email**: krushnakantsadiya@gmail.com
-- **NPM Package**: [n8n-nodes-telegram-censor](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
+[![Build Status](https://github.com/sadiakant/n8n-nodes-telegram-censor/actions/workflows/build.yml/badge.svg)](https://github.com/sadiakant/n8n-nodes-telegram-censor/actions/workflows/build.yml)
+[![Publish Status](https://github.com/sadiakant/n8n-nodes-telegram-censor/actions/workflows/publish.yml/badge.svg)](https://github.com/sadiakant/n8n-nodes-telegram-censor/actions/workflows/publish.yml)
+[![Socket Badge](https://badge.socket.dev/npm/package/n8n-nodes-telegram-censor)](https://badge.socket.dev/npm/package/n8n-nodes-telegram-censor)
+[![GitHub Issues](https://img.shields.io/github/issues/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/issues)
+[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/pulls)
+
+## **NPM Status**
+
+[![npm version](https://badgen.net/npm/v/n8n-nodes-telegram-censor)](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
+[![npm downloads/week](https://img.shields.io/npm/dw/n8n-nodes-telegram-censor?logo=npm&logoColor=white)](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
+[![npm downloads/month](https://img.shields.io/npm/dm/n8n-nodes-telegram-censor?logo=npm&logoColor=white)](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
+[![npm downloads/year](https://img.shields.io/npm/dy/n8n-nodes-telegram-censor?logo=npm&logoColor=white)](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
+[![node version](https://badgen.net/npm/node/n8n-nodes-telegram-censor)](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
+[![npm license](https://badgen.net/npm/license/n8n-nodes-telegram-censor)](LICENSE)
+[![GitHub license](https://badgen.net/github/license/sadiakant/n8n-nodes-telegram-censor)](LICENSE)
+[![npm total downloads](https://img.shields.io/npm/dt/n8n-nodes-telegram-censor?logo=npm&logoColor=white)](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
+[![npm unpacked size](https://img.shields.io/npm/unpacked-size/n8n-nodes-telegram-censor)](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
+[![npm types](https://img.shields.io/npm/types/n8n-nodes-telegram-censor)](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
+[![npm collaborators](https://img.shields.io/npm/collaborators/n8n-nodes-telegram-censor)](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
+
+## **GitHub Status**
+
+[![github stars](https://badgen.net/github/stars/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/stargazers)
+[![github forks](https://badgen.net/github/forks/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/network/members)
+[![last commit](https://badgen.net/github/last-commit/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/commits/main)
+[![GitHub contributors](https://img.shields.io/github/contributors/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/graphs/contributors)
+[![GitHub watchers](https://img.shields.io/github/watchers/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/watchers)
+[![GitHub issues closed](https://img.shields.io/github/issues-closed/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/issues)
+[![GitHub PRs closed](https://img.shields.io/github/issues-pr-closed/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/pulls)
+[![Commit activity](https://img.shields.io/github/commit-activity/m/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor/commits/main)
+[![Repo size](https://img.shields.io/github/repo-size/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor)
+[![Code size](https://img.shields.io/github/languages/code-size/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor)
+[![Top language](https://img.shields.io/github/languages/top/sadiakant/n8n-nodes-telegram-censor)](https://github.com/sadiakant/n8n-nodes-telegram-censor)
+
+## **Dependency Status**
+
+[![sharp dependency](https://img.shields.io/npm/dependency-version/n8n-nodes-telegram-censor/sharp)](https://www.npmjs.com/package/sharp)
+[![onnxruntime-web dependency](https://img.shields.io/npm/dependency-version/n8n-nodes-telegram-censor/onnxruntime-web)](https://www.npmjs.com/package/onnxruntime-web)
+[![n8n-workflow peer dependency](https://img.shields.io/npm/dependency-version/n8n-nodes-telegram-censor/peer/n8n-workflow)](https://www.npmjs.com/package/n8n-workflow)
+
+[![Teleproto API](https://badgen.net/static/TeleProto/API/229ED9)](https://core.telegram.org/api)
+[![TypeScript](https://badgen.net/static/TypeScript/5.x/3178C6)](https://www.typescriptlang.org/)
+[![n8n](https://badgen.net/static/n8n/Community%20Node/EA4B71)](https://n8n.io/)
+[![Node >= 18.17](https://img.shields.io/badge/node-%3E%3D18.17-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![AI: Local Only](https://img.shields.io/badge/AI-Local%20Only-00A86B?style=flat-square&logo=onnx&logoColor=white)](https://onnxruntime.ai/)
 
 ---
-
-## 👥 Contributors
-
-|                                                                                     Agent                                                                                      | Expertise & Role                                                             |
-| :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------- |
-|           <a href="https://github.com/sadiakant"><img src="https://github.com/sadiakant.png" width="60" style="border-radius: 50%; border: 2px solid #0052CC;"/></a>           | **Krushnakant Sadiya** <br> `Project Lead` • Architecture & Core Development |
-| <a href="https://deepmind.google/technologies/gemini/"><img src="https://github.com/google-gemini.png" width="60" style="border-radius: 50%; border: 2px solid #FF4F00;"/></a> | **Gemini AI** <br> `Debug & Fix` • Error Resolution & Logic                  |
-|            <a href="https://github.com/cline/cline"><img src="https://github.com/cline.png" width="60" style="border-radius: 50%; border: 2px solid #2EA44F;"/></a>            | **Cline AI** <br> `Implementation` • Core Modules & Bugs                     |
-|            <a href="https://kimi.moonshot.cn/"><img src="https://github.com/MoonshotAI.png" width="60" style="border-radius: 50%; border: 2px solid #FF0080;"/></a>            | **Kimi K2 AI** <br> `Visual Design` • Logo & Brand Assets                    |
-|                 <a href="https://grok.x.ai/"><img src="https://github.com/xai-org.png" width="60" style="border-radius: 50%; border: 2px solid #000000;"/></a>                 | **Grok AI** <br> `Optimization` • Performance Tuning                         |
-|              <a href="https://chat.openai.com/"><img src="https://github.com/openai.png" width="60" style="border-radius: 50%; border: 2px solid #10A37F;"/></a>               | **ChatGPT AI** <br> `Base Engine` • Foundation & Boilerplate                 |
-
----
-
-<p align="center">
-  <sub>Built with precision. Optimized by agents. Managed by <b>Sadiakant</b>.</sub>
-</p>
 
 ## 🏷️ Keywords
 

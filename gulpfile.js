@@ -1,25 +1,27 @@
 const path = require("path");
-const { task, src, dest, parallel } = require("gulp");
+const fs = require("fs");
+const { task } = require("gulp");
 
-task("build:icons", parallel(copyNodeIcons, copyCredentialIcons, copyModels));
+task("build", function copyModels(done) {
+	const sourceDir = path.resolve("models");
+	const destDir = path.resolve("dist", "models");
 
-function copyNodeIcons() {
-	const nodeSource = path.resolve("src", "nodes", "**", "*.{png,svg}");
-	const nodeDestination = path.resolve("dist", "nodes");
+	if (!fs.existsSync(destDir)) {
+		fs.mkdirSync(destDir, { recursive: true });
+	}
 
-	return src(nodeSource).pipe(dest(nodeDestination));
-}
+	const onnxFiles = fs
+		.readdirSync(sourceDir)
+		.filter((f) => f.endsWith(".onnx"));
 
-function copyCredentialIcons() {
-	const credSource = path.resolve("src", "credentials", "**", "*.{png,svg}");
-	const credDestination = path.resolve("dist", "credentials");
+	for (const file of onnxFiles) {
+		const srcPath = path.join(sourceDir, file);
+		const dstPath = path.join(destDir, file);
+		// fs.copyFileSync does a byte-exact binary copy (no encoding issues)
+		fs.copyFileSync(srcPath, dstPath);
+	}
 
-	return src(credSource).pipe(dest(credDestination));
-}
+	console.log("\n│\n└  Copied Model file");
+	done();
+});
 
-function copyModels() {
-	const modelSource = path.resolve("src", "models", "**", "*");
-	const modelDestination = path.resolve("dist", "models");
-
-	return src(modelSource).pipe(dest(modelDestination));
-}

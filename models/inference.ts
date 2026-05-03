@@ -27,12 +27,14 @@ sharp.cache(false);
 sharp.simd(true); // Keep SIMD for speed, it doesn't cost much RAM
 
 // --- Configuration ---
-const MODEL_PATH = path.join(__dirname, 'models', 'NudeNet-v3.4-weights-320n.onnx');
+const MODEL_PATH = path.join(__dirname, 'NudeNet-v3.4-weights-320n.onnx');
+const EXPECTED_MODEL_SIZE = 12_150_158; // Known-good NudeNet v3.4-320n file size in bytes
+const MODEL_SIZE_TOLERANCE = 0.05; // 5% tolerance for minor version differences
 
 // ─── Validate at startup (fail fast with clear message) ──────────────────────
 if (!fs.existsSync(MODEL_PATH)) {
 	// Show both what was expected and what actually exists to help debug
-	const modelsDir = path.join(__dirname, 'models');
+	const modelsDir = __dirname;
 	const dirExists = fs.existsSync(modelsDir);
 	const dirContents = dirExists
 		? fs.readdirSync(modelsDir).join(', ') || '(empty)'
@@ -97,26 +99,66 @@ export interface NudeDetection {
 	box: [number, number, number, number]; // [x1, y1, x2, y2]
 }
 
+interface BoundingBox {
+	x1: number;
+	y1: number;
+	x2: number;
+	y2: number;
+	score: number;
+	class: string;
+}
+
 // Global session variable
 let session: ort.InferenceSession | null = null;
 
 function logMemory(stage: string) {
 	if (process.env.N8N_LOG_LEVEL === 'debug') {
 		const used = process.memoryUsage().rss / 1024 / 1024;
-		console.log(`[Memory] ${stage}: ${Math.round(used * 100) / 100} MB`);
+		process.stderr.write(`[TelegramCensor] Memory ${stage}: ${Math.round(used * 100) / 100} MB\n`);
+	}
+}
+
+function validateModelFile(): void {
+	if (!fs.existsSync(MODEL_PATH)) {
+		throw new Error(
+			`[TelegramCensor] Model file not found at ${MODEL_PATH}. ` +
+				`Make sure the "models" folder exists in the package root.`,
+		);
+	}
+
+	const stat = fs.statSync(MODEL_PATH);
+	const actualSize = stat.size;
+	const maxAllowed = EXPECTED_MODEL_SIZE * (1 + MODEL_SIZE_TOLERANCE);
+
+	// If the file is significantly larger than expected, it's likely corrupted
+	// (e.g. the build process appended instead of replacing)
+	if (actualSize > maxAllowed) {
+		throw new Error(
+			`[TelegramCensor] Model file appears corrupted.\n` +
+				`Expected size : ~${EXPECTED_MODEL_SIZE} bytes\n` +
+				`Actual size   : ${actualSize} bytes\n` +
+				`File path     : ${MODEL_PATH}\n\n` +
+				`The model file is ${Math.round((actualSize / EXPECTED_MODEL_SIZE) * 100)}% of expected size. ` +
+				`This usually happens when the build process appends data instead of replacing.\n` +
+				`Fix: Delete the dist/models/ folder and run "npm run build" again.`,
+		);
+	}
+
+	// If it's suspiciously small (e.g. a Git LFS pointer), also warn
+	if (actualSize < 1024) {
+		throw new Error(
+			`[TelegramCensor] Model file is too small (${actualSize} bytes).\n` +
+				`This may be a Git LFS pointer instead of the actual model.\n` +
+				`File path: ${MODEL_PATH}\n\n` +
+				`Fix: Run "git lfs pull" to download the actual model file.`,
+		);
 	}
 }
 
 async function loadModel() {
 	if (session) return session;
 
-	if (!fs.existsSync(MODEL_PATH)) {
-		throw new Error(
-			`Model file not found at ${MODEL_PATH}. ` +
-				`Make sure the "models" folder exists in the package root.`,
-		);
-	}
-
+	validateModelFile();
 	logMemory('Pre-Load');
 
 	const options: ort.InferenceSession.SessionOptions = {
@@ -129,9 +171,28 @@ async function loadModel() {
 		executionProviders: ['wasm'],
 	};
 
-	session = await ort.InferenceSession.create(MODEL_PATH, options);
-	logMemory('Post-Load');
+	try {
+		session = await ort.InferenceSession.create(MODEL_PATH, options);
+	} catch (loadError) {
+		const errorMessage = loadError instanceof Error ? loadError.message : String(loadError);
 
+		// Protobuf parsing failures are almost always caused by a corrupted model file
+		if (errorMessage.includes('protobuf') || errorMessage.includes('ERROR_CODE: 7')) {
+			const stat = fs.statSync(MODEL_PATH);
+			throw new Error(
+				`[TelegramCensor] Failed to load ONNX model — protobuf parsing failed.\n` +
+					`Model path    : ${MODEL_PATH}\n` +
+					`File size     : ${stat.size} bytes (expected ~${EXPECTED_MODEL_SIZE})\n\n` +
+					`This is usually caused by a corrupted model file.\n` +
+					`Fix: Delete the dist/models/ folder and run "npm run build" again.\n` +
+					`Original error: ${errorMessage}`,
+			);
+		}
+
+		throw loadError;
+	}
+
+	logMemory('Post-Load');
 	return session;
 }
 
@@ -140,8 +201,12 @@ async function loadModel() {
  */
 export async function releaseModel() {
 	if (session) {
-		// @ts-ignore - Private method force release if available in newer bindings
-		if (session.release) await session.release();
+		const maybeReleasableSession = session as ort.InferenceSession & {
+			release?: () => Promise<void> | void;
+		};
+		if (typeof maybeReleasableSession.release === 'function') {
+			await maybeReleasableSession.release();
+		}
 		session = null;
 
 		// Hint V8 to cleanup if flags enabled (usually not in prod, but harmless)
@@ -219,14 +284,7 @@ export async function detectNudity(
 	const rows = dims[1]; // 22 classes
 	const cols = dims[2]; // 2100 anchors
 
-	let boxes: Array<{
-		x1: number;
-		y1: number;
-		x2: number;
-		y2: number;
-		score: number;
-		class: string;
-	}> = [];
+	let boxes: BoundingBox[] = [];
 
 	// Optimized loop
 	for (let c = 0; c < cols; c++) {
@@ -281,19 +339,22 @@ export async function detectNudity(
 	}));
 }
 
-function nms(boxes: any[], iouThreshold: number) {
+function nms(boxes: BoundingBox[], iouThreshold: number): BoundingBox[] {
 	if (boxes.length === 0) return [];
 	boxes.sort((a, b) => b.score - a.score);
-	const picked: any[] = [];
+	const picked: BoundingBox[] = [];
 	while (boxes.length > 0) {
 		const current = boxes.shift();
+		if (!current) {
+			break;
+		}
 		picked.push(current);
 		boxes = boxes.filter((b) => calculateIoU(current, b) < iouThreshold);
 	}
 	return picked;
 }
 
-function calculateIoU(boxA: any, boxB: any) {
+function calculateIoU(boxA: BoundingBox, boxB: BoundingBox): number {
 	const xA = Math.max(boxA.x1, boxB.x1);
 	const yA = Math.max(boxA.y1, boxB.y1);
 	const xB = Math.min(boxA.x2, boxB.x2);
@@ -312,15 +373,15 @@ export async function blurNudity(
 	if (!detections || detections.length === 0) return buffer;
 	const image = sharp(buffer); // Cache is disabled globally, so this is safe
 	const metadata = await image.metadata();
-	const composites: any[] = [];
+	const composites: sharp.OverlayOptions[] = [];
 	const sigma = Math.max(0.3, Math.min(100, blurStrength));
 
 	for (const det of detections) {
-		let [x1, y1, x2, y2] = det.box.map(Math.round);
+		const [x1, y1, rawX2, rawY2] = det.box.map(Math.round);
 		const width = metadata.width ?? 0;
 		const height = metadata.height ?? 0;
-		x2 = Math.min(width, x2);
-		y2 = Math.min(height, y2);
+		const x2 = Math.min(width, rawX2);
+		const y2 = Math.min(height, rawY2);
 
 		if (x2 - x1 < 2 || y2 - y1 < 2) continue;
 

@@ -26,7 +26,7 @@ This comprehensive troubleshooting guide helps you diagnose and resolve common i
 
 2. **Regenerate Session String**
    - Use our [Telegram GramPro](https://github.com/sadiakant/n8n-nodes-telegram-grampro) node for reliable session generation
-   - Follow the [Authorization Guide](AUTHORIZATION_GUIDE.md) carefully
+   - Follow the shared [Authorization Guide](https://github.com/sadiakant/n8n-nodes-telegram-grampro/blob/main/docs/AUTHORIZATION_GUIDE.md) carefully
    - Copy session string directly without manual editing
 
 3. **Check Session Conflicts**
@@ -102,11 +102,12 @@ This comprehensive troubleshooting guide helps you diagnose and resolve common i
 - Build process not completed
 - Model file not copied to dist directory
 - File permissions issues
+- Corrupted model file or Git LFS pointer checked out instead of the real `.onnx`
 
 **Solutions:**
 1. **Run Build Process**
    ```bash
-   # Ensure build is complete
+   # Ensure the n8n package build and model copy step both run
    npm run build
    
    # Check if model exists
@@ -118,16 +119,30 @@ This comprehensive troubleshooting guide helps you diagnose and resolve common i
    dist/
    ├── models/
    │   └── NudeNet-v3.4-weights-320n.onnx
-   ├── icons/
-   │   └── telegram-censor.svg
+   ├── credentials/
+   │   └── TelegramCensorCredentialsApi.credentials.js
    └── nodes/
-       └── TelegramCensor.node.js
+       └── TelegramCensor/
+           └── TelegramCensor.node.js
    ```
 
-3. **Check File Permissions**
+3. **Validate Model Size**
+   ```bash
+   # The packaged model should be about 12 MB, not a tiny Git LFS pointer
+   du -h dist/models/NudeNet-v3.4-weights-320n.onnx
+   ```
+
+4. **Check File Permissions**
    ```bash
    # Ensure model file is readable
    chmod 644 dist/models/NudeNet-v3.4-weights-320n.onnx
+   ```
+
+5. **Rebuild After Cleanup**
+   ```bash
+   # If the model looks corrupted, delete dist and rebuild
+   rm -rf dist
+   npm run build
    ```
 
 ---
@@ -147,7 +162,7 @@ This comprehensive troubleshooting guide helps you diagnose and resolve common i
    # Set environment variable for debug logs
    export N8N_LOG_LEVEL=debug
    
-   # Monitor memory usage
+   # Monitor memory usage while running the local node dev server
    npm run dev
    ```
 
@@ -435,8 +450,15 @@ Test AI model functionality:
    # Verify model file exists
    ls -la dist/models/
    
-   # Check file size (should be ~100MB)
+   # Check file size (should be roughly 12 MB)
    du -h dist/models/NudeNet-v3.4-weights-320n.onnx
+   ```
+
+   If the file is tiny, you may have a Git LFS pointer. Pull the real asset and rebuild:
+
+   ```bash
+   git lfs pull
+   npm run build
    ```
 
 2. **Test Model Loading**
@@ -524,6 +546,7 @@ When seeking help, include:
 - **GitHub Issues**: [Report bugs or request features](https://github.com/sadiakant/n8n-nodes-telegram-censor/issues)
 - **Email**: krushnakantsadiya@gmail.com
 - **NPM Package**: [n8n-nodes-telegram-censor](https://www.npmjs.com/package/n8n-nodes-telegram-censor)
+- **Authorization Guide**: [Shared Telegram login walkthrough](https://github.com/sadiakant/n8n-nodes-telegram-grampro/blob/main/docs/AUTHORIZATION_GUIDE.md)
 
 ---
 

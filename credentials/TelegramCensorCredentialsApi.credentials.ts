@@ -5,14 +5,16 @@ import {
 	IHttpRequestOptions,
 	ICredentialDataDecryptedObject,
 } from 'n8n-workflow';
-import { TelegramClient } from 'telegram';
-import { StringSession } from 'telegram/sessions';
-import { LogLevel, Logger } from 'telegram/extensions/Logger';
+import { TelegramClient } from 'teleproto';
+import { StringSession } from 'teleproto/sessions';
+import { LogLevel, Logger } from 'teleproto/extensions/Logger';
 
-export class TelegramCensorCredentials implements ICredentialType {
-	name = 'telegramCensorCredentials';
-	displayName = 'Telegram MTProto (User Account)';
-	documentationUrl = 'https://github.com/sadiakant/n8n-nodes-telegram-censor';
+export class TelegramCensorCredentialsApi implements ICredentialType {
+	name = 'telegramCensorCredentialsApi';
+	displayName = 'Telegram Censor API';
+	icon = 'file:TelegramCensorCredentials.svg' as const;
+	documentationUrl =
+		'https://github.com/sadiakant/n8n-nodes-telegram-grampro/blob/main/docs/AUTHORIZATION_GUIDE.md';
 
 	test: ICredentialTestRequest = {
 		request: {
@@ -63,7 +65,6 @@ export class TelegramCensorCredentials implements ICredentialType {
 
 		const client = new TelegramClient(new StringSession(sessionString), apiId, apiHash, {
 			connectionRetries: 2,
-			useWSS: false,
 			// Avoid noisy constructor-time INFO logs during credential validation.
 			baseLogger: new Logger(LogLevel.NONE),
 		});

@@ -4,6 +4,12 @@
 
 This guide provides comprehensive documentation for all operations available in the Telegram Censor n8n node. Each operation is designed to help you moderate content and protect your Telegram channels from policy violations.
 
+As of `3.0.0`, the node is organized into three resources:
+
+- **Message** for fetching, editing, and sending Telegram messages
+- **Media** for downloading message media into n8n binary data
+- **Moderation** for local NudeNet scanning and blur operations
+
 ## 🎯 Operations Reference
 
 ### **Message Operations**
@@ -58,7 +64,7 @@ Fetch messages from a chat with optional time and media filters for content mode
 ---
 
 #### **💾 Download Media**
-Download photos or documents from messages for analysis and moderation.
+Download photos, videos, or documents from messages for analysis and moderation.
 
 **Purpose**: Extract media files so they can be scanned for inappropriate content.
 
@@ -80,6 +86,10 @@ Download photos or documents from messages for analysis and moderation.
 - **Evidence Collection**: Save potentially problematic media
 - **Backup Creation**: Archive important media files
 - **Quality Control**: Review media before posting
+
+**Outputs**:
+- **Success Output**: Returns the original item metadata with a `media` binary property
+- **No Media Output**: Returns items that did not contain downloadable media so workflows can branch cleanly
 
 **Output**:
 ```json
@@ -179,6 +189,33 @@ Apply selective blur to detected sensitive regions while preserving image qualit
 
 ---
 
+#### **📝 Replace Text**
+Replace message text or media captions without changing the attached file.
+
+**Purpose**: Correct wording, captions, or policy notices while keeping the original media untouched.
+
+**Parameters**:
+- **Chat ID**: Target chat ID, username (@channel), or invite link
+- **Message ID**: ID of the message to update
+- **Text / Caption**: New text for a text message or new caption for a media message
+
+**Example**:
+```json
+{
+  "operation": "editMessageText",
+  "chatId": "@channel_name",
+  "messageId": 12345,
+  "editText": "Caption updated after moderation review"
+}
+```
+
+**Use Cases**:
+- **Caption Correction**: Fix unsafe or inaccurate captions after review
+- **Status Updates**: Add moderation notes without re-uploading media
+- **Text-only Maintenance**: Keep media intact while refreshing copy
+
+---
+
 #### **🔄 Replace Image**
 Replace media in existing messages with blurred/safe versions.
 
@@ -251,6 +288,52 @@ Replace media in existing messages with blurred/safe versions.
 
 **Note**:
 - Zero-media edit can fail due to Telegram permissions or message constraints. The node retries and then returns an error if deletion is not allowed.
+
+---
+
+#### **✉️ Send Message**
+Send a new Telegram message with optional formatting, reply targeting, and media attachment.
+
+**Purpose**: Post alerts, moderation summaries, or replacement content directly from the same node.
+
+**Parameters**:
+- **Send to Saved Messages**: Sends to `me` and hides the chat field
+- **Chat ID**: Username (@channel), invite link, or numeric ID when not sending to self
+- **Message Text**: Body text of the outgoing message
+- **Parse Mode**: `HTML` or `MarkdownV2`
+- **Reply to Message (ID)**: Optional reply target
+- **Show Web Preview**: Whether Telegram should generate URL previews
+- **Attach Media**: Enables uploading a binary file or direct URL
+- **Media Type**: Auto detect, Photo, Video, or Document
+- **Binary Property**: Binary field name to upload when using n8n binary input
+- **Media URL**: Optional public `http/https` URL when binary input is not available
+
+**Example A: Send a text-only alert**:
+```json
+{
+  "operation": "sendMessage",
+  "sendChatId": "@channel_name",
+  "sendText": "Moderation audit completed successfully.",
+  "sendParseMode": "markdownv2"
+}
+```
+
+**Example B: Send media from upstream binary data**:
+```json
+{
+  "operation": "sendMessage",
+  "sendChatId": "@channel_name",
+  "sendText": "Safe version attached below.",
+  "sendAttachMedia": true,
+  "sendMediaType": "photo",
+  "sendMediaBinaryProperty": "media"
+}
+```
+
+**Use Cases**:
+- **Admin Alerts**: Notify moderators when NSFW content is detected
+- **Safe Reposting**: Publish blurred media as a new message
+- **Saved Messages Workflow**: Send test output to your own Telegram account
 
 ---
 
@@ -347,6 +430,22 @@ Replace media in existing messages with blurred/safe versions.
 - **30-50**: Medium blur (good for policy compliance)
 - **60-80**: Heavy blur (maximum privacy)
 - **90-100**: Extreme blur (complete obscuring)
+
+### **Send Message Settings**
+```json
+{
+  "sendParseMode": "markdownv2",
+  "sendAttachMedia": true,
+  "sendMediaType": "auto",
+  "sendMediaBinaryProperty": "media",
+  "sendWebPreview": false
+}
+```
+
+**Send Message Notes**:
+- Use `sendToSelf = true` to test flows safely in Saved Messages
+- `sendMediaType = auto` infers type from MIME type first, then from URL extension
+- Only public `http/https` URLs are supported for direct media URL uploads
 
 ---
 

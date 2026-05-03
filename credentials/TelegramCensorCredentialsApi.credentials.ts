@@ -65,7 +65,6 @@ export class TelegramCensorCredentialsApi implements ICredentialType {
 
 		const client = new TelegramClient(new StringSession(sessionString), apiId, apiHash, {
 			connectionRetries: 2,
-			// Avoid noisy constructor-time INFO logs during credential validation.
 			baseLogger: new Logger(LogLevel.NONE),
 		});
 

@@ -89,6 +89,36 @@ const moderationOperations: INodeProperties = {
 	noDataExpression: true,
 };
 
+const operationResourceMap: Record<string, TelegramCensorResource> = {
+	getMessages: 'message',
+	editMessage: 'message',
+	editMessageText: 'message',
+	sendMessage: 'message',
+	downloadMedia: 'media',
+	nudeNetScanner: 'moderation',
+	nudeNetBlur: 'moderation',
+};
+
+const resolveOperationResource = (
+	configuredResource: string,
+	operation: string,
+): TelegramCensorResource => {
+	const inferredResource = operationResourceMap[operation];
+	if (inferredResource) {
+		return inferredResource;
+	}
+
+	if (
+		configuredResource === 'message' ||
+		configuredResource === 'media' ||
+		configuredResource === 'moderation'
+	) {
+		return configuredResource;
+	}
+
+	return 'message';
+};
+
 const properties: INodeProperties[] = [
 	{
 		displayName: 'Resource',
@@ -406,7 +436,12 @@ export class TelegramCensor implements INodeType {
 		outputs:
 			'={{ $parameter["resource"] === "media" && $parameter["operation"] === "downloadMedia" ? ["main", "main"] : ["main"] }}',
 		outputNames: ['Success', 'No Media'],
-		credentials: [{ name: 'telegramCensorCredentialsApi', required: true }],
+		credentials: [
+			{
+				name: 'telegramCensorCredentialsApi',
+				required: true,
+			},
+		],
 		properties,
 		usableAsTool: true,
 	};
@@ -425,8 +460,9 @@ export class TelegramCensor implements INodeType {
 				const item = items[i];
 				if (!item) continue;
 
-				const resource = this.getNodeParameter('resource', i, 'message') as TelegramCensorResource;
 				const operation = this.getNodeParameter('operation', i) as string;
+				const configuredResource = this.getNodeParameter('resource', i, '') as string;
+				const resource = resolveOperationResource(configuredResource, operation);
 
 				try {
 					if (resource === 'media' && operation === 'downloadMedia') {

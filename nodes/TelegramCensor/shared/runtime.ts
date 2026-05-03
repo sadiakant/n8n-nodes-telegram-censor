@@ -21,15 +21,48 @@ import type {
 	TelegramMessageMedia,
 } from './types';
 
+type TelegramCredentialData = {
+	apiId: string | number;
+	apiHash: string;
+	sessionString: string;
+};
+
 export async function createTelegramCensorRuntime(
 	context: IExecuteFunctions,
 ): Promise<TelegramCensorRuntime> {
-	const credentials = await context.getCredentials('telegramCensorCredentialsApi');
+	const credentialNames = ['telegramCensorCredentialsApi', 'telegramCensorCredentials'] as const;
+	let lastCredentialError: unknown;
+	let credentials: TelegramCredentialData | undefined;
+
+	for (const credentialName of credentialNames) {
+		try {
+			const resolved = await context.getCredentials(credentialName);
+			const sessionString = (resolved.sessionString ?? resolved.session) as string | undefined;
+			const apiHash = resolved.apiHash as string | undefined;
+			const apiId = resolved.apiId as string | number | undefined;
+
+			if (sessionString && apiHash && apiId !== undefined) {
+				credentials = { apiId, apiHash, sessionString };
+				break;
+			}
+		} catch (error) {
+			lastCredentialError = error;
+		}
+	}
+
+	if (!credentials) {
+		throw new NodeOperationError(
+			context.getNode(),
+			lastCredentialError instanceof Error
+				? lastCredentialError
+				: 'Telegram Censor credentials are missing or could not be loaded.',
+		);
+	}
 
 	const client = new TelegramClient(
-		new StringSession(credentials.sessionString as string),
+		new StringSession(credentials.sessionString),
 		Number(credentials.apiId),
-		credentials.apiHash as string,
+		credentials.apiHash,
 		{
 			connectionRetries: 5,
 			baseLogger: new Logger(LogLevel.NONE),

@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [3.0.1] - 2026-05-03
+
+- Fixed: updated credential naming to `telegramCensorCredentialsApi` to resolve n8n linting errors while maintaining backwards compatibility with existing workflow credentials.
+
 ## [3.0.0] - 2026-05-03
 
 - Breaking: migrated the package from the legacy `src/` layout and custom TypeScript build into the `@n8n/node-cli` community-node structure using root-level `credentials/`, `models/`, and `nodes/` directories.
